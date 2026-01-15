@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  BAD SCRIPT EXAMPLE
+  
+  This demonstrates common mistakes in video planning.
+  Each mistake is marked with [MISTAKE] comments explaining what's wrong.
+  
+  This script would produce a video where:
+  - The key feature (passkey auth) flashes by in 1.3 seconds
+  - Viewer can't read explanatory text
+  - Success feels like a glitch, not a payoff
+  - No one understands what makes this different from normal wallets
+-->
+<video_script>
+  <metadata>
+    <title>Passkey Wallet</title>
+    
+    <!-- [MISTAKE: No purpose statement]
+         Without knowing WHY this video exists, there's no guide for 
+         timing decisions. Is it a quick demo? A feature explanation? 
+         Marketing material? Each needs different pacing. -->
+    
+    <target_duration_seconds>12</target_duration_seconds>
+    <fps>30</fps>
+    
+    <!-- [MISTAKE: No viewer_takeaway]
+         The most important field is missing. Without knowing what the 
+         viewer should think after watching, we can't prioritize scenes.
+         
+         Result: All scenes get equal-ish time instead of emphasizing 
+         the key differentiator. -->
+  </metadata>
+
+  <scenes>
+    <scene id="1">
+      <n>UI</n>
+      
+      <!-- [MISTAKE: Generic name, no narrative]
+           "UI" tells us nothing. What should the viewer UNDERSTAND 
+           from this scene? What makes it notable?
+           
+           Without narrative context, implementer will just "show the UI" 
+           without understanding what matters. -->
+      
+      <viewer_should_notice>
+        - Button
+        - Card
+      </viewer_should_notice>
+      
+      <!-- [MISTAKE: Useless viewer_should_notice]
+           "Button" and "Card" are implementation details, not viewer 
+           insights. What should the viewer NOTICE? What's the signal?
+           
+           Missing: the ABSENCE of seed phrase warnings, which is the 
+           whole point. -->
+      
+      <timing_intent>brief</timing_intent>
+      
+      <!-- [MISTAKE: Wrong timing intent]
+           "brief" (1-2s) doesn't give time to:
+           - Read the headline
+           - See the feature badges
+           - Register what kind of screen this is
+           
+           The viewer will see a blur and then it's gone. -->
+      
+      <!-- [MISTAKE: No timing_rationale]
+           Without justification, "brief" is arbitrary. WHY brief?
+           What can be skipped? Nothing - this is context-setting. -->
+    </scene>
+
+    <scene id="2">
+      <n>Biometric</n>
+      
+      <!-- [MISTAKE: Generic name]
+           "Biometric" is a technical term. The scene is about 
+           PASSWORDLESS SECURITY and REPLACING SEED PHRASES.
+           
+           Name affects how seriously implementer treats the scene. -->
+      
+      <!-- [MISTAKE: No narrative at all]
+           This is THE KEY DIFFERENTIATOR and it has no explanation 
+           of what the viewer should understand.
+           
+           Result: Implementer treats it as "just another state" 
+           instead of the hero moment. -->
+      
+      <timing_intent>standard</timing_intent>
+      
+      <!-- [CRITICAL MISTAKE: Hero moment marked as "standard"]
+           This gives the KEY FEATURE only 2-4 seconds.
+           
+           Original buggy code gave this 40 frames = 1.3 seconds.
+           At 1.3s, viewer sees:
+           - Dialog appears (0.3s)
+           - Text they can't read (0.5s)
+           - Animation blur (0.3s)
+           - Gone (0.2s)
+           
+           The ENTIRE POINT of the video is lost. -->
+      
+      <!-- [MISTAKE: No minimum_duration_seconds]
+           Without a hard floor, implementation can compress this 
+           to whatever "feels right" - which is always too short. -->
+      
+      <!-- [MISTAKE: No timing_rationale]
+           If forced to justify "2-4 seconds" for the key feature, 
+           the author would realize it's insufficient. -->
+    </scene>
+
+    <scene id="3">
+      <n>Success</n>
+      
+      <timing_intent>brief</timing_intent>
+      
+      <!-- [MISTAKE: Success state marked "brief"]
+           "brief" = 1-2 seconds for the PAYOFF moment.
+           
+           Result: Success flashes and video ends abruptly.
+           Viewer feels like video glitched or cut off early.
+           No emotional satisfaction of "that was easy."
+           
+           Success states need 2-3s minimum to register as 
+           intentional completion, not accidental truncation. -->
+    </scene>
+  </scenes>
+
+  <!-- [MISTAKE: No transitions defined]
+       Without explicit transitions:
+       - Cursor might stay visible during biometric (looks wrong)
+       - Fade timing is arbitrary
+       - Transitions might eat into scene time unexpectedly
+       
+       Example: If scene 2 is 3s and we add a 1s fade, scene 2 
+       is really only 2s of content. -->
+
+</video_script>
+
+<!--
+  WHAT THIS BAD SCRIPT PRODUCES:
+  
+  Timeline (what actually happened in the buggy code):
+  
+  TIMELINE = {
+    BUTTON_CLICK: 40,        // 1.33s
+    BIOMETRIC_SHOW: 50,      // 1.67s  
+    BIOMETRIC_SUCCESS: 110,  // 3.67s  <- Only 2s for entire auth flow!
+    WALLET_SHOW: 130,        // 4.33s
+    ...
+  };
+  
+  Problems:
+  1. Biometric scene: 110 - 50 = 60 frames = 2 seconds
+     - But this includes: appear, scan animation, success
+     - Each sub-state gets ~0.7 seconds
+     - Viewer can't read "Creating secure passkey..."
+  
+  2. No timing_rationale means no one caught this in planning
+  
+  3. "standard" timing intent didn't flag this as needing emphasis
+  
+  4. Success at frame 130 with total 360 = success is 8% of video
+     - Should be at least 25% (3s of 12s)
+  
+  
+  HOW TO FIX:
+  
+  1. Add viewer_takeaway to force thinking about purpose
+  2. Mark scene 2 as timing_intent="hero" 
+  3. Add minimum_duration_seconds=6 for hero scene
+  4. Write timing_rationale justifying each duration
+  5. Define transitions with explicit frame counts
+  6. Write narrative explaining what viewer should understand
+  
+  See good_script.xml for the corrected version.
+-->

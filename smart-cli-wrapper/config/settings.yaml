@@ -1,0 +1,60 @@
+# Smart CLI Wrapper Configuration
+
+# Compression settings
+compression:
+  # Master switch - enable/disable all compression
+  enabled: true
+
+  # Only compress if output exceeds this many tokens
+  # Decision: 500 tokens = ~2,000 chars (good balance)
+  # - Below this: compression overhead not worth it
+  # - Above this: 80-95% reduction is massive win
+  threshold_tokens: 500
+
+  # Timeout for claude --print call (seconds)
+  # Decision: 30s allows for thorough compression without hanging
+  timeout_seconds: 30
+
+  # Model to use for compression
+  # Options:
+  # - "haiku" - Fast compression (recommended for most use cases)
+  # - "sonnet" - Higher quality compression (slower, more expensive)
+  model: "haiku"
+
+# Debug settings
+debug:
+  # Save raw output before compression to data/raw_outputs/
+  # Useful for debugging compression quality
+  save_raw_output: false
+
+  # Log each compression event with metrics
+  log_compressions: true
+
+  # Show verbose compression details in stderr
+  verbose: false
+
+# Metrics tracking (Phase 2 - not yet implemented)
+metrics:
+  # Track cumulative token savings across all commands
+  track_cumulative: true
+
+  # Show "Saved X tokens (Y%)" message after each compression
+  show_savings: true
+
+  # Path to stats file
+  stats_file: "data/compression_stats.json"
+
+# Advanced settings
+advanced:
+  # Skip compression for specific commands (exact match)
+  # Example: ["echo", "pwd"]
+  skip_commands: []
+
+  # Skip compression for commands matching these patterns (regex)
+  # Example: ["^git status$", "^ls -[la]+$"]
+  skip_patterns: []
+
+  # Maximum output size to attempt compression (chars)
+  # Prevents extremely large outputs from overwhelming Claude
+  # Decision: 500K chars = ~125K tokens (well within Claude's 200K context)
+  max_output_size: 500000

@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  GOOD SCRIPT EXAMPLE
+  
+  This demonstrates proper video planning for a passkey wallet creation flow.
+  Key characteristics:
+  - Clear viewer_takeaway driving all decisions
+  - Hero moment gets majority of time
+  - Every scene has timing_rationale justifying duration
+  - Transitions explicitly defined
+-->
+<video_script>
+  <metadata>
+    <title>Passkey Wallet Creation</title>
+    <purpose>
+      Demonstrate that passkey wallets replace seed phrase anxiety with 
+      device biometrics. Show the complete flow from button click to 
+      usable wallet in seconds.
+    </purpose>
+    <target_duration_seconds>12</target_duration_seconds>
+    <fps>30</fps>
+    <viewer_takeaway>
+      "I can create a crypto wallet with just my fingerprint - no seed 
+      phrases to write down, memorize, or lose."
+    </viewer_takeaway>
+  </metadata>
+
+  <scenes>
+    <scene id="1">
+      <name>Wallet Creation UI</name>
+      <narrative>
+        Clean interface appears. The key signal: NO seed phrase warning 
+        anywhere. Traditional crypto onboarding starts with "write down 
+        these 12 words" anxiety. This UI deliberately omits that, 
+        signaling "this is different."
+      </narrative>
+      <viewer_should_notice>
+        - "Create Wallet" button is the clear, single call-to-action
+        - Feature badges: "Passkey secured", "Instant setup", "Self-custody"
+        - Absence of seed phrase / recovery key mentions
+        - Clean, trustworthy design language
+      </viewer_should_notice>
+      <timing_intent>standard</timing_intent>
+      <timing_rationale>
+        Viewer needs to:
+        - Read headline "Create Your Wallet" (1s)
+        - Scan the 3 feature badges (1.5s)
+        - Register this as a wallet creation screen (0.5s)
+        Total: 3 seconds. Not the hero moment, but needs enough time
+        to establish context before the key differentiator.
+      </timing_rationale>
+    </scene>
+
+    <scene id="2">
+      <name>Passkey Authentication</name>
+      <narrative>
+        THIS IS THE HERO MOMENT. The entire point of the video.
+        
+        Native OS biometric prompt appears - this is TouchID/FaceID, not 
+        a custom UI. The viewer must understand that device-level security 
+        is handling authentication. The "Creating secure passkey..." text 
+        explains what's happening.
+        
+        This scene replaces what would be 2-3 minutes of seed phrase 
+        ceremony in traditional flows.
+      </narrative>
+      <viewer_should_notice>
+        - Native system dialog (not app UI) - proves this is real device security
+        - "Creating secure passkey..." explanatory text
+        - Fingerprint scanning animation - something is happening
+        - Success checkmark - confirmation it worked
+        - The ENTIRE security setup is just this - no backup steps follow
+      </viewer_should_notice>
+      <timing_intent>hero</timing_intent>
+      <timing_rationale>
+        This is the key differentiator. Rushing it defeats the video's purpose.
+        Viewer needs:
+        1. Recognize the biometric prompt as system-level (1s)
+           - If too fast, looks like a custom modal, not real security
+        2. Read "Creating secure passkey..." (1.5s)
+           - This text explains what's happening
+        3. Watch scanning animation (2s)
+           - Proves work is happening, builds anticipation
+        4. See and register success state (1.5s)
+           - Must feel like completion, not a flash
+        
+        Total: 6 seconds MINIMUM.
+        
+        Giving this less time is the #1 mistake - the viewer won't 
+        understand what makes this special.
+      </timing_rationale>
+      <minimum_duration_seconds>6</minimum_duration_seconds>
+    </scene>
+
+    <scene id="3">
+      <name>Wallet Ready</name>
+      <narrative>
+        Payoff: wallet exists and has an address. The viewer should feel 
+        "wow, that's it? That was easy."
+        
+        Implicit comparison: traditional flow would have taken 5 minutes 
+        of careful word transcription. This took 10 seconds.
+      </narrative>
+      <viewer_should_notice>
+        - Success checkmark animation
+        - "Wallet Created!" confirmation headline
+        - Actual wallet address displayed (proof it worked)
+        - Implicit: ready to receive funds immediately, no more steps
+      </viewer_should_notice>
+      <timing_intent>standard</timing_intent>
+      <timing_rationale>
+        Let the success moment breathe. This is emotional payoff.
+        - Success animation registers (0.5s)
+        - Read "Wallet Created!" (0.5s)
+        - See wallet address as proof (1s)
+        - Moment to feel "that was easy" (1s)
+        
+        Total: 3 seconds. Don't rush the ending - it's the lasting impression.
+      </timing_rationale>
+    </scene>
+  </scenes>
+
+  <transitions>
+    <transition from="1" to="2">
+      <type>action</type>
+      <trigger>Cursor clicks "Create Wallet" button</trigger>
+      <description>
+        Button shows press state (scale down slightly), then biometric 
+        dialog fades in as button click triggers the system prompt.
+        Cursor hides after click - user is not controlling the biometric.
+      </description>
+      <transition_duration_frames>15</transition_duration_frames>
+    </transition>
+    
+    <transition from="2" to="3">
+      <type>crossfade</type>
+      <trigger>Biometric success state completes (held for 1.5s)</trigger>
+      <description>
+        Biometric dialog fades out while success card slides up from below.
+        Overlapping fade creates smooth handoff.
+      </description>
+      <transition_duration_frames>20</transition_duration_frames>
+    </transition>
+  </transitions>
+</video_script>
+
+<!--
+  RESULTING TIMELINE:
+  
+  Scene 1 (standard): 3s = 90 frames   (0-89)
+  Scene 2 (hero):     6s = 180 frames  (90-269)  
+  Scene 3 (standard): 3s = 90 frames   (270-359)
+  Total: 12s = 360 frames
+  
+  Hero moment percentage: 6/12 = 50% ✓ (above 40% minimum)
+  
+  All text readable: ✓
+  - "Create Your Wallet" (3 words): 1s available, needs 1s ✓
+  - "Creating secure passkey..." (3 words): 1.5s available, needs 1s ✓
+  - "Wallet Created!" (2 words): 0.5s available, needs 0.67s ✓
+  
+  Success state duration: 1.5s in scene 2 + 3s scene 3 = adequate ✓
+-->

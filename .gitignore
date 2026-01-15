@@ -1,0 +1,35 @@
+# Source docs (fetched dynamically)
+source-docs/
+
+# Claude
+.claude/
+
+# macOS
+.DS_Store
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.Python
+env/
+venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Dependencies
+node_modules/
+
+# Lock files (keep uv.lock for reproducibility)
+package-lock.json
+yarn.lock
+
+# Temporary files
+*.tmp
+*.temp
+*.log
