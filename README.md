@@ -16,6 +16,9 @@ Universal CLI output optimizer that achieves 80-95% token reduction while preser
 ### spritesheets
 Generate tilemap spritesheets for 2D scene composition. Creates tileable terrain, placeable objects, and character sprites for game maps, visual novels, and illustrated dialogues.
 
+### swiftui
+Expert guidance for SwiftUI development on Apple platforms. Covers view composition, state management (@Observable, @Bindable, @Environment), async patterns (.task, MainActor), navigation, and performance optimization. Includes references for Liquid Glass (macOS 26), Swift Concurrency, and Instruments CLI profiling.
+
 ### tempo-protocol
 Browse and reference Tempo.xyz documentation. Built for a GitHub bounty project.
 
