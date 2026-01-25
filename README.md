@@ -25,6 +25,12 @@ Browse and reference Tempo.xyz documentation. Built for a GitHub bounty project.
 ### typst-syntax
 Typst syntax reference and patterns. Useful since Claude has limited native knowledge of Typst markup.
 
+### neon-cli
+Reference for using the Neon CLI to manage Neon serverless Postgres from the terminal. Covers projects, branches, databases, roles, connection strings, and more.
+
+### twitter-research
+Research and analyze Twitter/X content. Search tweets, look up users, and analyze timelines. Requires RapidAPI key for Twitter API access.
+
 ## Structure
 
 Each skill follows the standard structure:
