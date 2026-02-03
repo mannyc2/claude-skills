@@ -1,43 +1,56 @@
-# Claude Skills
+# Claude Skills Marketplace
 
-A collection of custom Claude Code skills for personal use.
+A plugin marketplace for Claude Code with 13 plugins covering development, learning, and productivity.
 
-## Skills
+## Installation
 
-### generating-images-with-gemini
-Generate and edit images using Google's Gemini API. Supports text-to-image generation, image editing, style transfer, multi-image composition, and batch generation.
+```bash
+# Add the marketplace
+/plugin marketplace add cjpher/claude-skills
 
-### os-study
-Interactive OS concepts quiz and learning tool. Features progress tracking, knowledge assessment, and dynamic cheat-sheet generation based on topics most struggled with.
+# Install a specific plugin
+/plugin install drizzle-orm@cjpher-skills
+```
 
-### smart-cli-wrapper
-Universal CLI output optimizer that achieves 80-95% token reduction while preserving actionable information. Meta-optimization for compressing verbose CLI outputs (kubectl, aws, terraform, etc.).
+Or install directly from a local clone:
 
-### spritesheets
-Generate tilemap spritesheets for 2D scene composition. Creates tileable terrain, placeable objects, and character sprites for game maps, visual novels, and illustrated dialogues.
+```bash
+/plugin marketplace add ./
+/plugin install drizzle-orm@cjpher-skills
+```
 
-### swiftui
-Expert guidance for SwiftUI development on Apple platforms. Covers view composition, state management (@Observable, @Bindable, @Environment), async patterns (.task, MainActor), navigation, and performance optimization. Includes references for Liquid Glass (macOS 26), Swift Concurrency, and Instruments CLI profiling.
+## Plugins
 
-### tempo-protocol
-Browse and reference Tempo.xyz documentation. Built for a GitHub bounty project.
-
-### typst-syntax
-Typst syntax reference and patterns. Useful since Claude has limited native knowledge of Typst markup.
-
-### neon-cli
-Reference for using the Neon CLI to manage Neon serverless Postgres from the terminal. Covers projects, branches, databases, roles, connection strings, and more.
-
-### twitter-research
-Research and analyze Twitter/X content. Search tweets, look up users, and analyze timelines. Requires RapidAPI key for Twitter API access.
+| Plugin | Description |
+|--------|-------------|
+| **drizzle-orm** | TypeScript ORM for SQL databases with type-safe queries, relations, and migrations |
+| **generating-images-with-gemini** | Generate and edit images using Google's Gemini API |
+| **neon-cli** | Reference for the Neon CLI to manage serverless Postgres |
+| **os-study** | Adaptive OS study companion with spaced repetition and Socratic method |
+| **react-hook-form** | Build accessible forms using React Hook Form with shadcn/ui |
+| **remotion-video** | Create well-paced, narrative-driven videos using Remotion |
+| **smart-cli-wrapper** | Universal CLI output optimizer achieving 80-95% token reduction |
+| **spritesheets** | Generate tilemap spritesheets for 2D scene composition |
+| **swiftui** | Expert guidance for SwiftUI development on Apple platforms |
+| **tempo-protocol** | Tempo blockchain protocol knowledge and documentation access |
+| **twitter-research** | Research and analyze Twitter/X content |
+| **typst-syntax** | Typst markup language reference with complete syntax documentation |
+| **z-image-prompts** | Transform requests into detailed visual prompts for text-to-image models |
 
 ## Structure
 
-Each skill follows the standard structure:
 ```
-skill-name/
-├── SKILL.md        # Skill definition and instructions
-├── references/     # Reference documentation
-├── scripts/        # Helper scripts (optional)
-└── ...
+claude-skills/
+├── .claude-plugin/
+│   └── marketplace.json      # Marketplace catalog
+├── plugins/
+│   └── <plugin-name>/
+│       ├── .claude-plugin/
+│       │   └── plugin.json   # Plugin manifest
+│       ├── skills/           # Skill definitions
+│       ├── agents/           # Agent definitions (optional)
+│       └── mcp_server.py     # MCP server (optional)
+└── README.md
 ```
+
+Each plugin follows the standard Claude Code plugin structure with auto-discovery of skills, agents, and commands.
