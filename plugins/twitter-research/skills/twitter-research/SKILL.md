@@ -1,211 +1,93 @@
 ---
 name: twitter-research
 description: Research and analyze Twitter/X content. Use when searching Twitter, analyzing tweets, researching users, tracking conversations, or investigating topics on X/Twitter.
-allowed-tools: Read, Bash(python:*)
+allowed-tools: mcp__twitter-research__search_tweets, mcp__twitter-research__get_user, mcp__twitter-research__get_user_tweets, mcp__twitter-research__get_profile, mcp__twitter-research__find_users, mcp__twitter-research__get_replies, mcp__twitter-research__get_list_timeline
 ---
 
 # Twitter Research Skill
 
-Research Twitter/X using a clean CLI interface. Search tweets, look up users, and analyze timelines.
+Research Twitter/X using MCP tools. Search tweets, look up users, and analyze timelines.
 
-## Quick Reference
+## Tools
 
-```bash
-# Search tweets
-python scripts/twitter_search.py search "AI" --min-likes 100 --no-retweets
-
-# Get user profile  
-python scripts/twitter_search.py user naval
-
-# Get user's tweets
-python scripts/twitter_search.py tweets karpathy --limit 50 --no-replies
-```
-
-## Environment
-
-Requires `RAPIDAPI_KEY_241` environment variable.
-
----
-
-## Commands
-
-### `search` - Search Tweets
+### `search_tweets` — Search Tweets
 
 Search for tweets matching keywords with optional filters.
 
-```bash
-python scripts/twitter_search.py search "keywords" [options]
-```
+**Key parameters:**
+| Parameter | Description |
+|-----------|-------------|
+| `keywords` | Search keywords |
+| `from` | Tweets from this user |
+| `to` | Replies to this user |
+| `mention` | Tweets mentioning this user |
+| `hashtags` | Array of hashtags to include |
+| `exclude` | Array of words to exclude |
+| `minLikes` | Minimum likes |
+| `minRetweets` | Minimum retweets |
+| `since` / `until` | Date range (YYYY-MM-DD) |
+| `days` | Tweets from last N days |
+| `noRetweets` | Exclude retweets (default: true) |
+| `noReplies` | Exclude replies |
+| `hasMedia` / `hasLinks` | Media/link filters |
+| `lang` | Language code (en, es, ja, etc.) |
+| `limit` | Max results (default: 20) |
+| `preset` | Use preset: `indie`, `viral`, `recent` |
 
-**User Filters:**
-| Flag | Description |
-|------|-------------|
-| `--from USER` | Tweets from this user |
-| `--to USER` | Replies to this user |
-| `--mention USER` | Tweets mentioning this user |
+### `get_user` — User Profile
 
-**Content Filters:**
-| Flag | Description |
-|------|-------------|
-| `--hashtag TAG` | Include hashtag (repeatable: `-t ai -t ml`) |
-| `--exclude WORD` | Exclude word (repeatable: `-x spam -x ad`) |
+Look up a Twitter user's profile by username. Returns ID, username, display name, follower count, bio.
 
-**Engagement Filters:**
-| Flag | Description |
-|------|-------------|
-| `--min-likes N` | Minimum likes |
-| `--min-retweets N` | Minimum retweets |
-| `--min-replies N` | Minimum replies |
+### `get_user_tweets` — User Timeline
 
-**Date Filters:**
-| Flag | Description |
-|------|-------------|
-| `--since YYYY-MM-DD` | Tweets after this date |
-| `--until YYYY-MM-DD` | Tweets before this date |
-| `--days N` | Tweets from last N days |
+Get a user's recent tweets with optional filters (noRetweets, noReplies, since, until, days, limit).
 
-**Tweet Type Filters:**
-| Flag | Description |
-|------|-------------|
-| `--no-retweets` | Exclude retweets |
-| `--no-replies` | Exclude replies |
-| `--only-replies` | Only show replies |
+### `get_profile` — Full Profile + Tweets
 
-**Media Filters:**
-| Flag | Description |
-|------|-------------|
-| `--has-media` | Has any media |
-| `--has-images` | Has images |
-| `--has-videos` | Has videos |
-| `--has-links` | Has links |
-| `--url DOMAIN` | Links to specific domain |
+Get user profile combined with their recent original tweets in one call.
 
-**Other:**
-| Flag | Description |
-|------|-------------|
-| `--lang CODE` | Language (en, es, ja, etc.) |
-| `--limit N` | Max results (default: 20) |
-| `--format FORMAT` | Output: text, json, csv |
-| `-v, --verbose` | Show debug info including generated query |
+### `find_users` — Find Users
 
----
+Find Twitter users by name or keyword. Returns users sorted by follower count.
 
-### `user` - User Profile
+### `get_replies` — Tweet Replies
 
-Look up a Twitter user's profile.
+Get replies to a specific tweet by ID. Supports `rankingMode`: Recency, Relevance (default), Likes.
 
-```bash
-python scripts/twitter_search.py user USERNAME [--format text|json]
-```
+### `get_list_timeline` — List Timeline
 
-Returns: ID, username, display name, follower count, bio.
-
----
-
-### `tweets` - User Timeline
-
-Get tweets from a specific user.
-
-```bash
-python scripts/twitter_search.py tweets USERNAME [options]
-```
-
-**Options:**
-| Flag | Description |
-|------|-------------|
-| `--no-retweets` | Exclude retweets |
-| `--no-replies` | Exclude replies |
-| `--only-replies` | Only show replies |
-| `--since YYYY-MM-DD` | After this date |
-| `--until YYYY-MM-DD` | Before this date |
-| `--days N` | Last N days |
-| `--limit N` | Max results (default: 20) |
-| `--format FORMAT` | Output: text, json, csv |
-
----
-
-## Examples
-
-### Find Popular AI Tweets
-```bash
-python scripts/twitter_search.py search "artificial intelligence" \
-  --min-likes 500 --no-retweets --lang en --limit 50
-```
-
-### Research a Specific User
-```bash
-# Get profile
-python scripts/twitter_search.py user elonmusk
-
-# Get their original tweets (no RTs/replies)
-python scripts/twitter_search.py tweets elonmusk \
-  --no-retweets --no-replies --limit 100
-```
-
-### Track Startup News
-```bash
-python scripts/twitter_search.py search "raised funding" \
-  --min-likes 100 --has-links --days 7
-```
-
-### Find Research Papers Being Shared
-```bash
-python scripts/twitter_search.py search "" \
-  --url arxiv.org --min-likes 50 --limit 30
-```
-
-### Monitor Mentions of a Company
-```bash
-python scripts/twitter_search.py search "" \
-  --mention anthropic --days 3 --limit 100 --format json
-```
-
-### Get Replies to a User
-```bash
-python scripts/twitter_search.py search "" \
-  --to sama --days 7 --limit 50
-```
-
-### Export for Analysis
-```bash
-# JSON for programmatic processing
-python scripts/twitter_search.py search "topic" --format json > data.json
-
-# CSV for spreadsheets
-python scripts/twitter_search.py tweets karpathy --format csv > tweets.csv
-```
+Get recent tweets from a Twitter list by list ID. Supports `limit` and `days` filters.
 
 ---
 
 ## Research Strategies
 
 ### Analyzing a Topic
-1. Start with broad keyword search: `search "topic" --min-likes 100`
+1. Start with broad search: `search_tweets` with keywords and `minLikes: 100`
 2. Note which users appear frequently
-3. Deep dive into those users: `tweets username --no-retweets`
-4. Check what they're replying to: `tweets username --only-replies`
+3. Deep dive into those users: `get_user_tweets` with `noRetweets: true`
+4. Check what they're replying to: `get_user_tweets` with `onlyReplies: true`
 
-### Competitive Intelligence  
-1. Monitor competitor: `search "" --mention competitor --days 7`
-2. Track their announcements: `tweets competitor --no-retweets --no-replies`
-3. See customer feedback: `search "" --to competitor --days 30`
+### Competitive Intelligence
+1. Monitor competitor: `search_tweets` with `mention` set to competitor
+2. Track their announcements: `get_user_tweets` with `noRetweets: true, noReplies: true`
+3. See customer feedback: `search_tweets` with `to` set to competitor
 
 ### Finding Influencers
-1. Search topic with high engagement: `search "topic" --min-likes 500`
+1. Search topic with high engagement: `search_tweets` with `minLikes: 500`
 2. Note usernames from top tweets
-3. Look up each: `user username`
-4. Analyze their content: `tweets username --limit 50`
+3. Look up each: `get_profile` for user info + recent tweets
 
 ### Tracking Breaking News
-1. Recent activity: `search "event" --days 1 --limit 100`
-2. Filter to quality: add `--min-likes 50 --no-retweets`
-3. Find primary sources: `--has-links`
+1. Recent activity: `search_tweets` with `days: 1, limit: 100`
+2. Filter to quality: add `minLikes: 50, noRetweets: true`
+3. Find primary sources: add `hasLinks: true`
 
 ---
 
-## Output Formats
+## Output Format
 
-**text** (default): XML format optimized for Claude parsing
+Results are returned as XML optimized for Claude parsing:
 
 ```xml
 <results>
@@ -214,8 +96,6 @@ python scripts/twitter_search.py tweets karpathy --format csv > tweets.csv
   <total_tweets>50</total_tweets>
   <unique_authors>35</unique_authors>
   <engagement likes="125000" retweets="8500" replies="3200" />
-  <avg_likes>2500.0</avg_likes>
-  <breakdown original="40" replies="5" retweets="0" quotes="5" with_media="12" />
   <top_authors>
     <author username="influential_user" tweets="3" total_likes="45000" />
   </top_authors>
@@ -232,29 +112,17 @@ python scripts/twitter_search.py tweets karpathy --format csv > tweets.csv
 </results>
 ```
 
-**json**: Structured JSON with summary and tweets array
-```json
-{
-  "summary": {
-    "query": "AI min_faves:100",
-    "total": 50,
-    "unique_authors": 35,
-    "total_likes": 125000,
-    "avg_likes": 2500.0,
-    "top_authors": [{"username": "user", "tweets": 3, "total_likes": 45000}]
-  },
-  "tweets": [...]
-}
-```
-
-**csv**: Spreadsheet-compatible format (no summary)
+Structured JSON data is also included for programmatic analysis.
 
 ---
 
+## Environment
+
+Requires `RAPIDAPI_KEY_241` environment variable (configured via MCP server).
+
 ## Tips
 
-1. **Use `--verbose`** to see the generated query for debugging
-2. **Start with `--limit 20`** to validate results before larger fetches
-3. **Combine `--no-retweets --no-replies`** for original content only
-4. **Use `--days N`** instead of calculating dates manually
-5. **Export to JSON** for further analysis or archiving
+1. **Start with `limit: 20`** to validate results before larger fetches
+2. **Combine `noRetweets: true` and `noReplies: true`** for original content only
+3. **Use `days`** instead of calculating dates manually
+4. **Use `get_profile`** instead of separate `get_user` + `get_user_tweets` calls

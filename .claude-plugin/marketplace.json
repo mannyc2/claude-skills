@@ -79,6 +79,15 @@
       "name": "twitter-research",
       "source": "twitter-research",
       "description": "Research and analyze Twitter/X content",
+      "mcpServers": {
+        "twitter-research": {
+          "command": "bun",
+          "args": ["run", "${CLAUDE_PLUGIN_ROOT}/mcp-server.ts"],
+          "env": {
+            "RAPIDAPI_KEY_241": "${RAPIDAPI_KEY_241}"
+          }
+        }
+      },
       "strict": false
     },
     {

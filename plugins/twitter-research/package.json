@@ -1,0 +1,9 @@
+{
+  "name": "twitter-research-mcp",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "zod": "^4.0.0"
+  }
+}
