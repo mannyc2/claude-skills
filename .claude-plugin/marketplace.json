@@ -1,6 +1,6 @@
 {
   "name": "cjpher-skills",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A collection of Claude Code plugins for development, learning, and productivity",
   "owner": {
     "name": "cjpher"
@@ -52,7 +52,9 @@
       "mcpServers": {
         "smart-cli": {
           "command": "python3",
-          "args": ["${CLAUDE_PLUGIN_ROOT}/mcp_server.py"]
+          "args": [
+            "${CLAUDE_PLUGIN_ROOT}/mcp_server.py"
+          ]
         }
       },
       "strict": false
@@ -82,7 +84,10 @@
       "mcpServers": {
         "twitter-research": {
           "command": "bun",
-          "args": ["run", "${CLAUDE_PLUGIN_ROOT}/mcp-server.ts"],
+          "args": [
+            "run",
+            "${CLAUDE_PLUGIN_ROOT}/mcp-server.ts"
+          ],
           "env": {
             "RAPIDAPI_KEY_241": "${RAPIDAPI_KEY_241}"
           }
@@ -109,7 +114,10 @@
       "mcpServers": {
         "calendar": {
           "command": "bun",
-          "args": ["run", "${CLAUDE_PLUGIN_ROOT}/mcp-server.ts"]
+          "args": [
+            "run",
+            "${CLAUDE_PLUGIN_ROOT}/mcp-server.ts"
+          ]
         }
       },
       "strict": false
@@ -121,7 +129,10 @@
       "mcpServers": {
         "refactor-tools": {
           "command": "bun",
-          "args": ["run", "${CLAUDE_PLUGIN_ROOT}/src/server.ts"]
+          "args": [
+            "run",
+            "${CLAUDE_PLUGIN_ROOT}/src/server.ts"
+          ]
         }
       },
       "strict": false
