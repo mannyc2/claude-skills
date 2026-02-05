@@ -113,6 +113,18 @@
         }
       },
       "strict": false
+    },
+    {
+      "name": "refactor-tools",
+      "source": "./plugins/refactor-tools",
+      "description": "Programmatic code analysis for structured refactoring workflows",
+      "mcpServers": {
+        "refactor-tools": {
+          "command": "bun",
+          "args": ["run", "${CLAUDE_PLUGIN_ROOT}/src/server.ts"]
+        }
+      },
+      "strict": false
     }
   ]
 }

@@ -1,0 +1,5 @@
+{
+  "name": "refactor-tools",
+  "version": "1.0.0",
+  "description": "Programmatic code analysis for structured refactoring workflows"
+}
