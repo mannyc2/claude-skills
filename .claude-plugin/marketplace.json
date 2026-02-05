@@ -11,43 +11,43 @@
   "plugins": [
     {
       "name": "drizzle-orm",
-      "source": "./drizzle-orm",
+      "source": "./plugins/drizzle-orm",
       "description": "TypeScript ORM for SQL databases with type-safe queries, relations, and migrations",
       "strict": false
     },
     {
       "name": "generating-images-with-gemini",
-      "source": "./generating-images-with-gemini",
+      "source": "./plugins/generating-images-with-gemini",
       "description": "Generate and edit images using Google's Gemini API with text-to-image, editing, and batch generation",
       "strict": false
     },
     {
       "name": "neon-cli",
-      "source": "./neon-cli",
+      "source": "./plugins/neon-cli",
       "description": "Reference for using the Neon CLI to manage Neon serverless Postgres from the terminal",
       "strict": false
     },
     {
       "name": "os-study",
-      "source": "./os-study",
+      "source": "./plugins/os-study",
       "description": "Adaptive Operating Systems study companion using spaced repetition and Socratic method",
       "strict": false
     },
     {
       "name": "react-hook-form",
-      "source": "./react-hook-form",
+      "source": "./plugins/react-hook-form",
       "description": "Build accessible forms using React Hook Form with shadcn/ui Field components",
       "strict": false
     },
     {
       "name": "remotion-video",
-      "source": "./remotion-video",
+      "source": "./plugins/remotion-video",
       "description": "Create well-paced, narrative-driven videos using Remotion",
       "strict": false
     },
     {
       "name": "smart-cli-wrapper",
-      "source": "./smart-cli-wrapper",
+      "source": "./plugins/smart-cli-wrapper",
       "description": "Universal CLI output optimizer achieving 80-95% token reduction",
       "mcpServers": {
         "smart-cli": {
@@ -59,25 +59,25 @@
     },
     {
       "name": "spritesheets",
-      "source": "./spritesheets",
+      "source": "./plugins/spritesheets",
       "description": "Generate tilemap spritesheets for 2D scene composition",
       "strict": false
     },
     {
       "name": "swiftui",
-      "source": "./swiftui",
+      "source": "./plugins/swiftui",
       "description": "Expert guidance for SwiftUI development on Apple platforms",
       "strict": false
     },
     {
       "name": "tempo-protocol",
-      "source": "./tempo-protocol",
+      "source": "./plugins/tempo-protocol",
       "description": "Tempo blockchain protocol knowledge and documentation access",
       "strict": false
     },
     {
       "name": "twitter-research",
-      "source": "./twitter-research",
+      "source": "./plugins/twitter-research",
       "description": "Research and analyze Twitter/X content",
       "mcpServers": {
         "twitter-research": {
@@ -92,19 +92,19 @@
     },
     {
       "name": "typst-syntax",
-      "source": "./typst-syntax",
+      "source": "./plugins/typst-syntax",
       "description": "General-purpose Typst markup language reference with complete syntax documentation",
       "strict": false
     },
     {
       "name": "z-image-prompts",
-      "source": "./z-image-prompts",
+      "source": "./plugins/z-image-prompts",
       "description": "Transform user requests into detailed visual prompts for text-to-image models",
       "strict": false
     },
     {
       "name": "calendar",
-      "source": "./calendar",
+      "source": "./plugins/calendar",
       "description": "Interact with Apple Calendar and Reminders — list, create, update, delete events; recurring events; reminders; find free time",
       "mcpServers": {
         "calendar": {

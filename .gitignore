@@ -29,6 +29,9 @@ node_modules/
 package-lock.json
 yarn.lock
 
+# Compiled binaries
+plugins/calendar/swift/calendar-tool
+
 # Temporary files
 *.tmp
 *.temp

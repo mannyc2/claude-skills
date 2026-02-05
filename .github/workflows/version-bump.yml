@@ -1,0 +1,62 @@
+name: Version Bump
+on:
+  push:
+    branches: [main]
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    # Skip if the last commit was from this action (avoid infinite loop)
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Determine bump type
+        id: bump
+        run: |
+          # Get commits since last version bump commit
+          LAST_BUMP=$(git log --oneline --all --grep='\[skip ci\]' -1 --format='%H' || echo '')
+          if [ -z "$LAST_BUMP" ]; then
+            COMMITS=$(git log --oneline --format='%s%n%b')
+          else
+            COMMITS=$(git log --oneline --format='%s%n%b' "$LAST_BUMP"..HEAD)
+          fi
+
+          if echo "$COMMITS" | grep -qE 'BREAKING CHANGE|^[a-z]+(\(.+\))?!:'; then
+            echo "type=major" >> "$GITHUB_OUTPUT"
+          elif echo "$COMMITS" | grep -qE '^feat(\(.+\))?:'; then
+            echo "type=minor" >> "$GITHUB_OUTPUT"
+          elif echo "$COMMITS" | grep -qE '^fix(\(.+\))?:'; then
+            echo "type=patch" >> "$GITHUB_OUTPUT"
+          else
+            echo "type=none" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Bump version
+        if: steps.bump.outputs.type != 'none'
+        run: |
+          FILE=".claude-plugin/marketplace.json"
+          CURRENT=$(jq -r '.version' "$FILE")
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+
+          case "${{ steps.bump.outputs.type }}" in
+            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+            minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+            patch) PATCH=$((PATCH + 1)) ;;
+          esac
+
+          NEW="${MAJOR}.${MINOR}.${PATCH}"
+          jq --arg v "$NEW" '.version = $v' "$FILE" > tmp.json && mv tmp.json "$FILE"
+          echo "Bumped $CURRENT → $NEW (${{ steps.bump.outputs.type }})"
+
+      - name: Commit and push
+        if: steps.bump.outputs.type != 'none'
+        run: |
+          git config user.name "mannyc2"
+          git config user.email "126291407+mannyc2@users.noreply.github.com"
+          git add .claude-plugin/marketplace.json
+          git commit -m "chore: bump version [skip ci]"
+          git push
