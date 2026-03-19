@@ -9,7 +9,11 @@ export class TwitterClient {
   constructor(apiKey?: string) {
     this.apiKey = apiKey || process.env.RAPIDAPI_KEY_241 || ''
     if (!this.apiKey) {
-      throw new Error('RAPIDAPI_KEY_241 environment variable required')
+      throw new Error(
+        'RAPIDAPI_KEY_241 not set. Add it to your Claude Code settings.json env block:\n' +
+        '  "env": { "RAPIDAPI_KEY_241": "your-key-here" }\n' +
+        'Get a key at https://rapidapi.com/Jeadie/api/twitter241'
+      )
     }
   }
 
@@ -37,8 +41,18 @@ export class TwitterClient {
         })
 
         if (response.status === 429) {
-          lastError = new Error('Rate limited')
+          const retryAfter = response.headers.get('retry-after')
+          lastError = new Error(
+            `Rate limited by RapidAPI${retryAfter ? ` — retry after ${retryAfter}s` : ''}. Retrying with backoff...`
+          )
           continue
+        }
+
+        if (response.status === 403) {
+          throw new Error(
+            'API returned 403 Forbidden. This usually means your RAPIDAPI_KEY_241 is invalid or expired. ' +
+            'Check your key at https://rapidapi.com/Jeadie/api/twitter241'
+          )
         }
 
         if (!response.ok) {
@@ -93,6 +107,7 @@ export class TwitterClient {
   ): Promise<TwitterTweet[]> {
     const { limit = 50, untilDate } = options
     const allTweets: TwitterTweet[] = []
+    const seenIds = new Set<string>()
     let cursor: string | null = null
     let hitDateCutoff = false
 
@@ -148,7 +163,8 @@ export class TwitterClient {
           }
 
           const tweet = this.extractTweet(entry.content)
-          if (tweet) {
+          if (tweet && !seenIds.has(tweet.id)) {
+            seenIds.add(tweet.id)
             // Check date cutoff
             if (untilDate) {
               const tweetDate = new Date(tweet.createdAt)
@@ -177,6 +193,7 @@ export class TwitterClient {
 
   async search(query: string, limit: number = 20): Promise<TwitterTweet[]> {
     const allTweets: TwitterTweet[] = []
+    const seenIds = new Set<string>()
     let cursor: string | null = null
 
     while (allTweets.length < limit) {
@@ -231,7 +248,8 @@ export class TwitterClient {
           }
 
           const tweet = this.extractTweet(entry.content)
-          if (tweet) {
+          if (tweet && !seenIds.has(tweet.id)) {
+            seenIds.add(tweet.id)
             allTweets.push(tweet)
             foundTweets++
           }
@@ -256,6 +274,7 @@ export class TwitterClient {
     rankingMode: 'Recency' | 'Relevance' | 'Likes' = 'Relevance'
   ): Promise<TwitterTweet[]> {
     const allTweets: TwitterTweet[] = []
+    const seenIds = new Set<string>()
     let cursor: string | null = null
 
     while (allTweets.length < limit) {
@@ -342,22 +361,25 @@ export class TwitterClient {
               viewCount = parseInt(tweet.views.count, 10) || null
             }
 
-            allTweets.push({
-              id: legacy.id_str,
-              text: legacy.full_text,
-              createdAt: legacy.created_at,
-              username: userCore.screen_name || userLegacy.screen_name || 'unknown',
-              displayName: userCore.name || userLegacy.name || 'Unknown',
-              likeCount: legacy.favorite_count || 0,
-              retweetCount: legacy.retweet_count || 0,
-              replyCount: legacy.reply_count || 0,
-              viewCount,
-              isRetweet: false,
-              isReply: true,
-              isQuote: legacy.is_quote_status || false,
-              mediaUrls: [],
-            })
-            foundTweets++
+            if (!seenIds.has(legacy.id_str)) {
+              seenIds.add(legacy.id_str)
+              allTweets.push({
+                id: legacy.id_str,
+                text: legacy.full_text,
+                createdAt: legacy.created_at,
+                username: userCore.screen_name || userLegacy.screen_name || 'unknown',
+                displayName: userCore.name || userLegacy.name || 'Unknown',
+                likeCount: legacy.favorite_count || 0,
+                retweetCount: legacy.retweet_count || 0,
+                replyCount: legacy.reply_count || 0,
+                viewCount,
+                isRetweet: false,
+                isReply: true,
+                isQuote: legacy.is_quote_status || false,
+                mediaUrls: [],
+              })
+              foundTweets++
+            }
           }
         }
       }

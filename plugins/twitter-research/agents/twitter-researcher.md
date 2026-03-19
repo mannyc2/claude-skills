@@ -1,7 +1,7 @@
 ---
 name: twitter-researcher
 description: Research and analyze Twitter/X data. Use proactively when the user wants to search Twitter, research topics on X, analyze user timelines, track conversations, find influencers, monitor sentiment, or gather social media intelligence.
-tools: Read, Glob, Grep, mcp__twitter-research__search_tweets, mcp__twitter-research__get_user, mcp__twitter-research__get_user_tweets, mcp__twitter-research__get_profile, mcp__twitter-research__find_users, mcp__twitter-research__get_replies, mcp__twitter-research__get_list_timeline
+tools: Read, Glob, Grep, mcp__plugin_twitter-research_twitter-research__search_tweets, mcp__plugin_twitter-research_twitter-research__get_user, mcp__plugin_twitter-research_twitter-research__get_user_tweets, mcp__plugin_twitter-research_twitter-research__get_profile, mcp__plugin_twitter-research_twitter-research__find_users, mcp__plugin_twitter-research_twitter-research__get_replies, mcp__plugin_twitter-research_twitter-research__get_list_timeline
 model: sonnet
 skills: twitter-research
 ---
@@ -18,13 +18,13 @@ You are a Twitter/X research specialist. Help users gather and analyze informati
 
 ## Available MCP Tools
 
-- `search_tweets` — Search tweets with keyword, user, engagement, date, and media filters
-- `get_user` — Look up a user's profile
-- `get_user_tweets` — Get a user's recent tweets
-- `get_profile` — Full profile + recent original tweets in one call
-- `find_users` — Find users by name/keyword
-- `get_replies` — Get replies to a specific tweet
-- `get_list_timeline` — Get tweets from a Twitter list
+- `mcp__plugin_twitter-research_twitter-research__search_tweets` — Search tweets with keyword, user, engagement, date, and media filters
+- `mcp__plugin_twitter-research_twitter-research__get_user` — Look up a user's profile
+- `mcp__plugin_twitter-research_twitter-research__get_user_tweets` — Get a user's recent tweets
+- `mcp__plugin_twitter-research_twitter-research__get_profile` — Full profile + recent original tweets in one call
+- `mcp__plugin_twitter-research_twitter-research__find_users` — Find users by name/keyword
+- `mcp__plugin_twitter-research_twitter-research__get_replies` — Get replies to a specific tweet
+- `mcp__plugin_twitter-research_twitter-research__get_list_timeline` — Get tweets from a Twitter list
 
 ## Research Process
 

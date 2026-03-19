@@ -11,6 +11,16 @@ import {
   getReplies,
 } from './skills/twitter-research/scripts/twitter/service'
 import type { SearchOptions } from './skills/twitter-research/scripts/twitter/types'
+import { encodeToon } from './skills/twitter-research/scripts/twitter/toon'
+import type { TwitterTweet } from './skills/twitter-research/scripts/twitter/types'
+
+/** Flatten mediaUrls array to a pipe-separated string so tweets stay tabular in TOON. */
+function flattenTweets(tweets: TwitterTweet[]) {
+  return tweets.map(({ mediaUrls, ...rest }) => ({
+    ...rest,
+    mediaUrls: mediaUrls.join('|'),
+  }))
+}
 
 const server = new McpServer({
   name: 'twitter-research',
@@ -52,12 +62,17 @@ server.tool(
       noRetweets: params.noRetweets ?? true,
     }
     const result = await search(options)
-    return {
-      content: [
-        { type: 'text' as const, text: result.formatted },
-        { type: 'text' as const, text: `\n\n<structured_data>\n${JSON.stringify(result.tweets, null, 2)}\n</structured_data>` },
-      ],
+    const content = [
+      { type: 'text' as const, text: result.formatted },
+      { type: 'text' as const, text: `\n\n<structured_data format="toon">\n${encodeToon(flattenTweets(result.tweets))}\n</structured_data>` },
+    ]
+    if (result.tweets.length === 0 && result.query) {
+      content.push({
+        type: 'text' as const,
+        text: `\n\nQuery returned 0 results. Twitter query was: \`${result.query}\`\nTry broadening your search: remove minLikes/minRetweets, expand the date range, or simplify keywords.`,
+      })
     }
+    return { content }
   }
 )
 
@@ -72,7 +87,7 @@ server.tool(
     return {
       content: [
         { type: 'text' as const, text: result.formatted },
-        { type: 'text' as const, text: `\n\n<structured_data>\n${JSON.stringify(result.user, null, 2)}\n</structured_data>` },
+        { type: 'text' as const, text: `\n\n<structured_data format="toon">\n${encodeToon(result.user)}\n</structured_data>` },
       ],
     }
   }
@@ -96,7 +111,7 @@ server.tool(
     return {
       content: [
         { type: 'text' as const, text: result.formatted },
-        { type: 'text' as const, text: `\n\n<structured_data>\n${JSON.stringify(result.tweets, null, 2)}\n</structured_data>` },
+        { type: 'text' as const, text: `\n\n<structured_data format="toon">\n${encodeToon(flattenTweets(result.tweets))}\n</structured_data>` },
       ],
     }
   }
@@ -116,7 +131,7 @@ server.tool(
         { type: 'text' as const, text: result.formatted },
         {
           type: 'text' as const,
-          text: `\n\n<structured_data>\n${JSON.stringify({ user: result.user, tweets: result.tweets }, null, 2)}\n</structured_data>`,
+          text: `\n\n<structured_data format="toon">\n${encodeToon({ user: result.user, tweets: flattenTweets(result.tweets) })}\n</structured_data>`,
         },
       ],
     }
@@ -134,7 +149,7 @@ server.tool(
     return {
       content: [
         { type: 'text' as const, text: result.formatted },
-        { type: 'text' as const, text: `\n\n<structured_data>\n${JSON.stringify(result.users, null, 2)}\n</structured_data>` },
+        { type: 'text' as const, text: `\n\n<structured_data format="toon">\n${encodeToon(result.users)}\n</structured_data>` },
       ],
     }
   }
@@ -153,7 +168,7 @@ server.tool(
     return {
       content: [
         { type: 'text' as const, text: result.formatted },
-        { type: 'text' as const, text: `\n\n<structured_data>\n${JSON.stringify(result.tweets, null, 2)}\n</structured_data>` },
+        { type: 'text' as const, text: `\n\n<structured_data format="toon">\n${encodeToon(flattenTweets(result.tweets))}\n</structured_data>` },
       ],
     }
   }
@@ -172,7 +187,7 @@ server.tool(
     return {
       content: [
         { type: 'text' as const, text: result.formatted },
-        { type: 'text' as const, text: `\n\n<structured_data>\n${JSON.stringify(result.tweets, null, 2)}\n</structured_data>` },
+        { type: 'text' as const, text: `\n\n<structured_data format="toon">\n${encodeToon(flattenTweets(result.tweets))}\n</structured_data>` },
       ],
     }
   }
