@@ -1,4 +1,4 @@
-import type { TwitterUser, TwitterTweet, PaginatedResult } from './types'
+import type { TwitterUser, TwitterTweet, TweetUrl, PaginatedResult } from './types'
 
 const RAPIDAPI_HOST = 'twitter241.p.rapidapi.com'
 const RAPIDAPI_URL = `https://${RAPIDAPI_HOST}`
@@ -385,6 +385,7 @@ export class TwitterClient {
                 isReply: true,
                 isQuote: legacy.is_quote_status || false,
                 mediaUrls: [],
+                urls: [],
               })
               foundTweets++
             }
@@ -423,7 +424,10 @@ export class TwitterClient {
                 in_reply_to_status_id_str?: string
                 is_quote_status?: boolean
                 extended_entities?: { media?: Array<{ type?: string; media_url_https?: string }> }
-                entities?: { media?: Array<{ type?: string; media_url_https?: string }> }
+                entities?: {
+                  media?: Array<{ type?: string; media_url_https?: string }>
+                  urls?: Array<{ url?: string; expanded_url?: string }>
+                }
               }
               core?: {
                 user_results?: {
@@ -455,10 +459,18 @@ export class TwitterClient {
       }
 
       const mediaUrls: string[] = []
-      const entities = legacy.extended_entities || legacy.entities || {}
-      for (const media of entities.media || []) {
+      const extEntities = legacy.extended_entities || {}
+      const entities = legacy.entities || {}
+      for (const media of (extEntities.media || entities.media || [])) {
         if (media.type === 'photo' && media.media_url_https) {
           mediaUrls.push(media.media_url_https)
+        }
+      }
+
+      const urls: TweetUrl[] = []
+      for (const u of entities.urls || []) {
+        if (u.url && u.expanded_url) {
+          urls.push({ short: u.url, expanded: u.expanded_url })
         }
       }
 
@@ -476,6 +488,7 @@ export class TwitterClient {
         isReply: Boolean(legacy.in_reply_to_status_id_str),
         isQuote: legacy.is_quote_status || false,
         mediaUrls,
+        urls,
       }
     } catch {
       return null

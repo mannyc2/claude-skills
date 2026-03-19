@@ -13,11 +13,12 @@ import {
 import type { SearchOptions, TwitterTweet } from './skills/twitter-research/scripts/twitter/types'
 import { encodeToon } from './skills/twitter-research/scripts/twitter/toon'
 
-/** Flatten mediaUrls array to a pipe-separated string so tweets stay tabular in TOON. */
+/** Flatten array fields to strings so tweets stay tabular in TOON. */
 function flattenTweets(tweets: TwitterTweet[]) {
-  return tweets.map(({ mediaUrls, ...rest }) => ({
+  return tweets.map(({ mediaUrls, urls, ...rest }) => ({
     ...rest,
     mediaUrls: mediaUrls.join('|'),
+    urls: urls.map(u => u.expanded).join('|'),
   }))
 }
 

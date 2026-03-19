@@ -39,12 +39,54 @@ function truncateText(text: string, maxLength: number = 280): string {
   return clean.slice(0, maxLength - 3) + '...'
 }
 
+/**
+ * Build a deduplicated link index across all tweets.
+ * Returns a map of expanded URL → index number, and replaces t.co links
+ * in each tweet's text with [N] references.
+ */
+function buildLinkIndex(tweets: TwitterTweet[]): { expandedTexts: Map<string, string>; linkIndex: string[] } {
+  const urlToIndex = new Map<string, number>()
+  const linkIndex: string[] = []
+  const expandedTexts = new Map<string, string>()
+
+  for (const tweet of tweets) {
+    if (tweet.urls.length === 0) {
+      expandedTexts.set(tweet.id, tweet.text)
+      continue
+    }
+
+    let text = tweet.text
+    for (const u of tweet.urls) {
+      let idx = urlToIndex.get(u.expanded)
+      if (idx === undefined) {
+        idx = linkIndex.length
+        urlToIndex.set(u.expanded, idx)
+        linkIndex.push(u.expanded)
+      }
+      text = text.replaceAll(u.short, `[${idx}]`)
+    }
+    expandedTexts.set(tweet.id, text)
+  }
+
+  return { expandedTexts, linkIndex }
+}
+
+function formatLinkIndex(linkIndex: string[]): string {
+  if (linkIndex.length === 0) return ''
+  const lines = ['## Links', '']
+  for (let i = 0; i < linkIndex.length; i++) {
+    lines.push(`[${i}] ${linkIndex[i]}`)
+  }
+  return lines.join('\n')
+}
+
 export function formatTweetsText(tweets: TwitterTweet[], query: string): string {
   if (tweets.length === 0) {
     return '## Summary\nNo tweets found.'
   }
 
   const summary = computeSummary(tweets, query)
+  const { expandedTexts, linkIndex } = buildLinkIndex(tweets)
   const lines: string[] = []
 
   // Summary
@@ -66,12 +108,19 @@ export function formatTweetsText(tweets: TwitterTweet[], query: string): string 
   lines.push('## Tweets')
   lines.push('')
 
-  // Tweets
+  // Tweets with expanded links
   for (const tweet of tweets) {
+    const text = expandedTexts.get(tweet.id) || tweet.text
     lines.push(`@${tweet.username} · ${formatLikes(tweet.likeCount)} likes`)
-    lines.push(truncateText(tweet.text))
+    lines.push(truncateText(text))
     lines.push(`→ twitter.com/${tweet.username}/status/${tweet.id}`)
     lines.push('')
+  }
+
+  // Deduplicated link index
+  const linkSection = formatLinkIndex(linkIndex)
+  if (linkSection) {
+    lines.push(linkSection)
   }
 
   return lines.join('\n')
@@ -177,11 +226,19 @@ export function formatProfileOutput(
   lines.push(`## Recent Tweets (${tweets.length})`)
   lines.push('')
 
+  const { expandedTexts, linkIndex } = buildLinkIndex(tweets)
+
   // Tweets
   for (const tweet of tweets) {
-    lines.push(`${formatLikes(tweet.likeCount)} likes · ${truncateText(tweet.text, 200)}`)
+    const text = expandedTexts.get(tweet.id) || tweet.text
+    lines.push(`${formatLikes(tweet.likeCount)} likes · ${truncateText(text, 200)}`)
     lines.push(`→ twitter.com/${tweet.username}/status/${tweet.id}`)
     lines.push('')
+  }
+
+  const linkSection = formatLinkIndex(linkIndex)
+  if (linkSection) {
+    lines.push(linkSection)
   }
 
   return lines.join('\n')

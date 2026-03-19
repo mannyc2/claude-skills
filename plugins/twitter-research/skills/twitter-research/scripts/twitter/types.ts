@@ -10,6 +10,11 @@ export interface TwitterUser {
   description: string
 }
 
+export interface TweetUrl {
+  short: string      // t.co URL as it appears in tweet text
+  expanded: string   // actual destination URL
+}
+
 export interface TwitterTweet {
   id: string
   text: string
@@ -24,6 +29,7 @@ export interface TwitterTweet {
   isReply: boolean
   isQuote: boolean
   mediaUrls: string[]
+  urls: TweetUrl[]
 }
 
 export interface PaginatedResult<T> {
