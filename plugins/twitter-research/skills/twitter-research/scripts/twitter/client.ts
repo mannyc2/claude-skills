@@ -1,4 +1,4 @@
-import type { TwitterUser, TwitterTweet } from './types'
+import type { TwitterUser, TwitterTweet, PaginatedResult } from './types'
 
 const RAPIDAPI_HOST = 'twitter241.p.rapidapi.com'
 const RAPIDAPI_URL = `https://${RAPIDAPI_HOST}`
@@ -103,12 +103,13 @@ export class TwitterClient {
 
   async getListTimeline(
     listId: string,
-    options: { limit?: number; untilDate?: Date } = {}
-  ): Promise<TwitterTweet[]> {
+    options: { limit?: number; untilDate?: Date; cursor?: string | null } = {}
+  ): Promise<PaginatedResult<TwitterTweet>> {
     const { limit = 50, untilDate } = options
     const allTweets: TwitterTweet[] = []
     const seenIds = new Set<string>()
-    let cursor: string | null = null
+    let cursor: string | null = options.cursor ?? null
+    let lastCursor: string | null = null
     let hitDateCutoff = false
 
     while (allTweets.length < limit && !hitDateCutoff) {
@@ -179,6 +180,7 @@ export class TwitterClient {
         }
       }
 
+      lastCursor = nextCursor
       if (foundTweets === 0 || !nextCursor || hitDateCutoff) break
       cursor = nextCursor
 
@@ -188,13 +190,15 @@ export class TwitterClient {
       }
     }
 
-    return untilDate ? allTweets : allTweets.slice(0, limit)
+    const items = untilDate ? allTweets : allTweets.slice(0, limit)
+    return { items, nextCursor: items.length >= limit ? lastCursor : null }
   }
 
-  async search(query: string, limit: number = 20): Promise<TwitterTweet[]> {
+  async search(query: string, limit: number = 20, startCursor?: string | null): Promise<PaginatedResult<TwitterTweet>> {
     const allTweets: TwitterTweet[] = []
     const seenIds = new Set<string>()
-    let cursor: string | null = null
+    let cursor: string | null = startCursor ?? null
+    let lastCursor: string | null = null
 
     while (allTweets.length < limit) {
       const params: Record<string, string> = { query, type: 'Latest' }
@@ -256,6 +260,7 @@ export class TwitterClient {
         }
       }
 
+      lastCursor = nextCursor
       if (foundTweets === 0 || !nextCursor) break
       cursor = nextCursor
 
@@ -265,17 +270,20 @@ export class TwitterClient {
       }
     }
 
-    return allTweets.slice(0, limit)
+    const items = allTweets.slice(0, limit)
+    return { items, nextCursor: items.length >= limit ? lastCursor : null }
   }
 
   async getComments(
     tweetId: string,
     limit: number = 20,
-    rankingMode: 'Recency' | 'Relevance' | 'Likes' = 'Relevance'
-  ): Promise<TwitterTweet[]> {
+    rankingMode: 'Recency' | 'Relevance' | 'Likes' = 'Relevance',
+    startCursor?: string | null
+  ): Promise<PaginatedResult<TwitterTweet>> {
     const allTweets: TwitterTweet[] = []
     const seenIds = new Set<string>()
-    let cursor: string | null = null
+    let cursor: string | null = startCursor ?? null
+    let lastCursor: string | null = null
 
     while (allTweets.length < limit) {
       const params: Record<string, string> = {
@@ -384,6 +392,7 @@ export class TwitterClient {
         }
       }
 
+      lastCursor = nextCursor
       if (foundTweets === 0 || !nextCursor) break
       cursor = nextCursor
 
@@ -393,7 +402,8 @@ export class TwitterClient {
       }
     }
 
-    return allTweets.slice(0, limit)
+    const items = allTweets.slice(0, limit)
+    return { items, nextCursor: items.length >= limit ? lastCursor : null }
   }
 
   private extractTweet(content: unknown): TwitterTweet | null {

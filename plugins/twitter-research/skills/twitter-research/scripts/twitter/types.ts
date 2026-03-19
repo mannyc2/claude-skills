@@ -26,6 +26,11 @@ export interface TwitterTweet {
   mediaUrls: string[]
 }
 
+export interface PaginatedResult<T> {
+  items: T[]
+  nextCursor: string | null
+}
+
 export interface SearchSummary {
   query: string
   total: number

@@ -10,9 +10,8 @@ import {
   getListTimeline,
   getReplies,
 } from './skills/twitter-research/scripts/twitter/service'
-import type { SearchOptions } from './skills/twitter-research/scripts/twitter/types'
+import type { SearchOptions, TwitterTweet } from './skills/twitter-research/scripts/twitter/types'
 import { encodeToon } from './skills/twitter-research/scripts/twitter/toon'
-import type { TwitterTweet } from './skills/twitter-research/scripts/twitter/types'
 
 /** Flatten mediaUrls array to a pipe-separated string so tweets stay tabular in TOON. */
 function flattenTweets(tweets: TwitterTweet[]) {
@@ -22,6 +21,12 @@ function flattenTweets(tweets: TwitterTweet[]) {
   }))
 }
 
+/** Build pagination info text block. */
+function paginationBlock(nextCursor: string | null): string {
+  if (!nextCursor) return '\n\n<pagination>No more results.</pagination>'
+  return `\n\n<pagination>\nPass cursor to get the next page:\ncursor: ${nextCursor}\n</pagination>`
+}
+
 const server = new McpServer({
   name: 'twitter-research',
   version: '1.0.0',
@@ -29,7 +34,7 @@ const server = new McpServer({
 
 server.tool(
   'search_tweets',
-  'Search Twitter/X for tweets matching keywords with optional filters for engagement, date, media, and users. Returns formatted results optimized for analysis.',
+  'Search Twitter/X for tweets matching keywords with optional filters for engagement, date, media, and users. Returns formatted results optimized for analysis. Supports pagination via cursor.',
   {
     keywords: z.string().optional().describe('Search keywords'),
     from: z.string().optional().describe('Tweets from this user'),
@@ -55,16 +60,18 @@ server.tool(
     lang: z.string().optional().describe('Language code (en, es, ja, etc.)'),
     limit: z.number().optional().describe('Max results (default: 20)'),
     preset: z.string().optional().describe('Use preset: indie, viral, recent'),
+    cursor: z.string().optional().describe('Pagination cursor from a previous response'),
   },
-  async (params) => {
+  async ({ cursor, ...params }) => {
     const options: SearchOptions = {
       ...params,
       noRetweets: params.noRetweets ?? true,
     }
-    const result = await search(options)
+    const result = await search(options, 'text', cursor)
     const content = [
       { type: 'text' as const, text: result.formatted },
       { type: 'text' as const, text: `\n\n<structured_data format="toon">\n${encodeToon(flattenTweets(result.tweets))}\n</structured_data>` },
+      { type: 'text' as const, text: paginationBlock(result.nextCursor) },
     ]
     if (result.tweets.length === 0 && result.query) {
       content.push({
@@ -95,7 +102,7 @@ server.tool(
 
 server.tool(
   'get_user_tweets',
-  "Get a user's recent tweets with optional filters. Excludes retweets by default.",
+  "Get a user's recent tweets with optional filters. Excludes retweets by default. Supports pagination via cursor.",
   {
     username: z.string().describe('Twitter username'),
     limit: z.number().optional().describe('Max results (default: 20)'),
@@ -105,13 +112,15 @@ server.tool(
     since: z.string().optional().describe('After date (YYYY-MM-DD)'),
     until: z.string().optional().describe('Before date (YYYY-MM-DD)'),
     days: z.number().optional().describe('Tweets from last N days'),
+    cursor: z.string().optional().describe('Pagination cursor from a previous response'),
   },
-  async ({ username, ...options }) => {
-    const result = await getUserTweets(username, options)
+  async ({ username, cursor, ...options }) => {
+    const result = await getUserTweets(username, options, 'text', cursor)
     return {
       content: [
         { type: 'text' as const, text: result.formatted },
         { type: 'text' as const, text: `\n\n<structured_data format="toon">\n${encodeToon(flattenTweets(result.tweets))}\n</structured_data>` },
+        { type: 'text' as const, text: paginationBlock(result.nextCursor) },
       ],
     }
   }
@@ -157,18 +166,20 @@ server.tool(
 
 server.tool(
   'get_replies',
-  'Get replies/comments on a specific tweet by tweet ID.',
+  'Get replies/comments on a specific tweet by tweet ID. Supports pagination via cursor.',
   {
     tweetId: z.string().describe('Tweet ID to get replies for'),
     limit: z.number().optional().describe('Max replies (default: 20)'),
     rankingMode: z.enum(['Recency', 'Relevance', 'Likes']).optional().describe('Sort order (default: Relevance)'),
+    cursor: z.string().optional().describe('Pagination cursor from a previous response'),
   },
-  async ({ tweetId, limit, rankingMode }) => {
-    const result = await getReplies(tweetId, { limit, rankingMode })
+  async ({ tweetId, limit, rankingMode, cursor }) => {
+    const result = await getReplies(tweetId, { limit, rankingMode, cursor })
     return {
       content: [
         { type: 'text' as const, text: result.formatted },
         { type: 'text' as const, text: `\n\n<structured_data format="toon">\n${encodeToon(flattenTweets(result.tweets))}\n</structured_data>` },
+        { type: 'text' as const, text: paginationBlock(result.nextCursor) },
       ],
     }
   }
@@ -176,18 +187,20 @@ server.tool(
 
 server.tool(
   'get_list_timeline',
-  'Get recent tweets from a Twitter/X list by list ID.',
+  'Get recent tweets from a Twitter/X list by list ID. Supports pagination via cursor.',
   {
     listId: z.string().describe('Twitter list ID'),
     limit: z.number().optional().describe('Max tweets (default: 50)'),
     days: z.number().optional().describe('Only tweets from last N days'),
+    cursor: z.string().optional().describe('Pagination cursor from a previous response'),
   },
-  async ({ listId, limit, days }) => {
-    const result = await getListTimeline(listId, { limit, days })
+  async ({ listId, limit, days, cursor }) => {
+    const result = await getListTimeline(listId, { limit, days, cursor })
     return {
       content: [
         { type: 'text' as const, text: result.formatted },
         { type: 'text' as const, text: `\n\n<structured_data format="toon">\n${encodeToon(flattenTweets(result.tweets))}\n</structured_data>` },
+        { type: 'text' as const, text: paginationBlock(result.nextCursor) },
       ],
     }
   }

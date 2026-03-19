@@ -8,6 +8,7 @@ export interface SearchResult {
   query: string
   formatted: string
   tweets: TwitterTweet[]
+  nextCursor: string | null
 }
 
 export interface ProfileResult {
@@ -26,18 +27,19 @@ export interface FindResult {
  */
 export async function search(
   options: SearchOptions,
-  format: OutputFormat = 'text'
+  format: OutputFormat = 'text',
+  cursor?: string | null
 ): Promise<SearchResult> {
   const finalOptions = options.preset ? applyPreset(options, options.preset) : options
   const query = buildQuery(finalOptions)
 
   if (!query.trim()) {
-    return { query: '', formatted: 'Error: No search query specified', tweets: [] }
+    return { query: '', formatted: 'Error: No search query specified', tweets: [], nextCursor: null }
   }
 
   const client = new TwitterClient()
-  const tweets = await client.search(query, finalOptions.limit ?? 20)
-  return { query, formatted: formatOutput(tweets, format, query), tweets }
+  const result = await client.search(query, finalOptions.limit ?? 20, cursor)
+  return { query, formatted: formatOutput(result.items, format, query), tweets: result.items, nextCursor: result.nextCursor }
 }
 
 /**
@@ -58,7 +60,8 @@ export async function getUser(
 export async function getUserTweets(
   username: string,
   options: Partial<SearchOptions> = {},
-  format: OutputFormat = 'text'
+  format: OutputFormat = 'text',
+  cursor?: string | null
 ): Promise<SearchResult> {
   const client = new TwitterClient()
   const query = buildQuery({
@@ -66,8 +69,8 @@ export async function getUserTweets(
     noRetweets: options.noRetweets ?? true,
     ...options,
   })
-  const tweets = await client.search(query, options.limit ?? 20)
-  return { query, formatted: formatOutput(tweets, format, query), tweets }
+  const result = await client.search(query, options.limit ?? 20, cursor)
+  return { query, formatted: formatOutput(result.items, format, query), tweets: result.items, nextCursor: result.nextCursor }
 }
 
 /**
@@ -81,7 +84,7 @@ export async function getProfile(
   const client = new TwitterClient()
   const cleanUsername = username.replace(/^@/, '')
 
-  const [user, tweets] = await Promise.all([
+  const [user, result] = await Promise.all([
     client.getUser(cleanUsername),
     client.search(
       buildQuery({ from: cleanUsername, noRetweets: true, noReplies: true }),
@@ -89,7 +92,7 @@ export async function getProfile(
     ),
   ])
 
-  return { formatted: formatProfileOutput(user, tweets, format), user, tweets }
+  return { formatted: formatProfileOutput(user, result.items, format), user, tweets: result.items }
 }
 
 /**
@@ -101,10 +104,10 @@ export async function findUsers(
 ): Promise<FindResult> {
   const client = new TwitterClient()
   const query = `"${name}"`
-  const tweets = await client.search(query, 50)
+  const result = await client.search(query, 50)
 
   const usersMap = new Map<string, TwitterUser>()
-  for (const tweet of tweets) {
+  for (const tweet of result.items) {
     if (!usersMap.has(tweet.username)) {
       try {
         const user = await client.getUser(tweet.username)
@@ -125,6 +128,7 @@ export async function findUsers(
 export interface ListTimelineResult {
   formatted: string
   tweets: TwitterTweet[]
+  nextCursor: string | null
 }
 
 /**
@@ -132,23 +136,25 @@ export interface ListTimelineResult {
  */
 export async function getListTimeline(
   listId: string,
-  options: { limit?: number; days?: number } = {},
+  options: { limit?: number; days?: number; cursor?: string | null } = {},
   format: OutputFormat = 'text'
 ): Promise<ListTimelineResult> {
   const client = new TwitterClient()
   const untilDate = options.days
     ? new Date(Date.now() - options.days * 24 * 60 * 60 * 1000)
     : undefined
-  const tweets = await client.getListTimeline(listId, {
+  const result = await client.getListTimeline(listId, {
     limit: options.limit ?? 50,
     untilDate,
+    cursor: options.cursor,
   })
-  return { formatted: formatOutput(tweets, format), tweets }
+  return { formatted: formatOutput(result.items, format), tweets: result.items, nextCursor: result.nextCursor }
 }
 
 export interface RepliesResult {
   formatted: string
   tweets: TwitterTweet[]
+  nextCursor: string | null
 }
 
 /**
@@ -156,14 +162,15 @@ export interface RepliesResult {
  */
 export async function getReplies(
   tweetId: string,
-  options: { limit?: number; rankingMode?: 'Recency' | 'Relevance' | 'Likes' } = {},
+  options: { limit?: number; rankingMode?: 'Recency' | 'Relevance' | 'Likes'; cursor?: string | null } = {},
   format: OutputFormat = 'text'
 ): Promise<RepliesResult> {
   const client = new TwitterClient()
-  const tweets = await client.getComments(
+  const result = await client.getComments(
     tweetId,
     options.limit ?? 20,
-    options.rankingMode ?? 'Relevance'
+    options.rankingMode ?? 'Relevance',
+    options.cursor
   )
-  return { formatted: formatOutput(tweets, format), tweets }
+  return { formatted: formatOutput(result.items, format), tweets: result.items, nextCursor: result.nextCursor }
 }
