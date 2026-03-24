@@ -7,6 +7,13 @@ import {
   getUserTweets,
   getProfile,
   findUsers,
+  searchPeople,
+  getUsersBatch,
+  getUserMedia,
+  getUserFollowers,
+  getUserFollowing,
+  searchCommunities,
+  getCommunityMembers,
   getListTimeline,
   getReplies,
 } from './skills/twitter-research/scripts/twitter/service'
@@ -150,7 +157,7 @@ server.tool(
 
 server.tool(
   'find_users',
-  'Find Twitter/X users by name or keyword. Searches tweets and resolves unique authors, sorted by follower count.',
+  'Find Twitter/X users by name or keyword. Prefer search_people for richer results with bio filtering and pagination.',
   {
     name: z.string().describe('Name or keyword to search for'),
   },
@@ -160,6 +167,145 @@ server.tool(
       content: [
         { type: 'text' as const, text: result.formatted },
         { type: 'text' as const, text: `\n\n<structured_data format="toon">\n${encodeToon(result.users)}\n</structured_data>` },
+      ],
+    }
+  }
+)
+
+server.tool(
+  'search_people',
+  'Search for Twitter/X users by name, keyword, or topic. Returns profiles with bios, follower counts, and verification status. Supports pagination via cursor.',
+  {
+    query: z.string().describe('Search query for finding users'),
+    maxFollowers: z.number().optional().describe('Filter: only return users with fewer than N followers'),
+    bioContains: z.string().optional().describe('Filter: bio must contain this text (case-insensitive)'),
+    limit: z.number().optional().describe('Max results (default: 20)'),
+    cursor: z.string().optional().describe('Pagination cursor from a previous response'),
+  },
+  async ({ query, maxFollowers, bioContains, limit, cursor }) => {
+    const result = await searchPeople(query, { maxFollowers, bioContains, limit }, 'text', cursor)
+    return {
+      content: [
+        { type: 'text' as const, text: result.formatted },
+        { type: 'text' as const, text: `\n\n<structured_data format="toon">\n${encodeToon(result.users)}\n</structured_data>` },
+        { type: 'text' as const, text: paginationBlock(result.nextCursor) },
+      ],
+    }
+  }
+)
+
+server.tool(
+  'get_users_batch',
+  'Look up multiple Twitter/X user profiles by their numeric IDs in a single API call. More efficient than individual lookups when you have rest_ids from search results.',
+  {
+    userIds: z.array(z.string()).describe('Array of Twitter user IDs (rest_ids)'),
+  },
+  async ({ userIds }) => {
+    const result = await getUsersBatch(userIds)
+    return {
+      content: [
+        { type: 'text' as const, text: result.formatted },
+        { type: 'text' as const, text: `\n\n<structured_data format="toon">\n${encodeToon(result.users)}\n</structured_data>` },
+      ],
+    }
+  }
+)
+
+server.tool(
+  'get_user_media',
+  "Get a user's media posts (images and videos) only. Useful for evaluating a creator's visual content. Supports pagination via cursor.",
+  {
+    username: z.string().describe('Twitter username'),
+    limit: z.number().optional().describe('Max results (default: 20)'),
+    cursor: z.string().optional().describe('Pagination cursor from a previous response'),
+  },
+  async ({ username, limit, cursor }) => {
+    const result = await getUserMedia(username, { limit, cursor })
+    return {
+      content: [
+        { type: 'text' as const, text: result.formatted },
+        { type: 'text' as const, text: `\n\n<structured_data format="toon">\n${encodeToon(flattenTweets(result.tweets))}\n</structured_data>` },
+        { type: 'text' as const, text: paginationBlock(result.nextCursor) },
+      ],
+    }
+  }
+)
+
+server.tool(
+  'get_user_followers',
+  "Get a user's followers. Returns user profiles with bios and follower counts. Supports pagination via cursor.",
+  {
+    username: z.string().describe('Twitter username'),
+    limit: z.number().optional().describe('Max results (default: 20)'),
+    cursor: z.string().optional().describe('Pagination cursor from a previous response'),
+  },
+  async ({ username, limit, cursor }) => {
+    const result = await getUserFollowers(username, { limit, cursor })
+    return {
+      content: [
+        { type: 'text' as const, text: result.formatted },
+        { type: 'text' as const, text: `\n\n<structured_data format="toon">\n${encodeToon(result.users)}\n</structured_data>` },
+        { type: 'text' as const, text: paginationBlock(result.nextCursor) },
+      ],
+    }
+  }
+)
+
+server.tool(
+  'get_user_following',
+  'Get who a user follows. Returns user profiles with bios and follower counts. Supports pagination via cursor.',
+  {
+    username: z.string().describe('Twitter username'),
+    limit: z.number().optional().describe('Max results (default: 20)'),
+    cursor: z.string().optional().describe('Pagination cursor from a previous response'),
+  },
+  async ({ username, limit, cursor }) => {
+    const result = await getUserFollowing(username, { limit, cursor })
+    return {
+      content: [
+        { type: 'text' as const, text: result.formatted },
+        { type: 'text' as const, text: `\n\n<structured_data format="toon">\n${encodeToon(result.users)}\n</structured_data>` },
+        { type: 'text' as const, text: paginationBlock(result.nextCursor) },
+      ],
+    }
+  }
+)
+
+server.tool(
+  'search_communities',
+  'Search for Twitter/X communities by keyword. Returns community names, descriptions, and member counts. Use get_community_members to explore members.',
+  {
+    query: z.string().describe('Search query for finding communities'),
+    limit: z.number().optional().describe('Max results (default: 20)'),
+    cursor: z.string().optional().describe('Pagination cursor from a previous response'),
+  },
+  async ({ query, limit, cursor }) => {
+    const result = await searchCommunities(query, { limit, cursor })
+    return {
+      content: [
+        { type: 'text' as const, text: result.formatted },
+        { type: 'text' as const, text: `\n\n<structured_data format="toon">\n${encodeToon(result.communities)}\n</structured_data>` },
+        { type: 'text' as const, text: paginationBlock(result.nextCursor) },
+      ],
+    }
+  }
+)
+
+server.tool(
+  'get_community_members',
+  'Get members of a Twitter/X community by community ID. Returns user profiles. Supports pagination via cursor.',
+  {
+    communityId: z.string().describe('Twitter community ID'),
+    limit: z.number().optional().describe('Max results (default: 20)'),
+    cursor: z.string().optional().describe('Pagination cursor from a previous response'),
+  },
+  async ({ communityId, limit, cursor }) => {
+    const result = await getCommunityMembers(communityId, { limit, cursor })
+    return {
+      content: [
+        { type: 'text' as const, text: result.formatted },
+        { type: 'text' as const, text: `\n\n<structured_data format="toon">\n${encodeToon(result.users)}\n</structured_data>` },
+        { type: 'text' as const, text: paginationBlock(result.nextCursor) },
       ],
     }
   }

@@ -7,7 +7,13 @@ export interface TwitterUser {
   username: string
   displayName: string
   followersCount: number
+  followingCount: number
+  tweetCount: number
+  mediaCount: number
   description: string
+  createdAt: string
+  isBlueVerified: boolean
+  profileImageUrl: string
 }
 
 export interface TweetUrl {
@@ -17,10 +23,12 @@ export interface TweetUrl {
 
 export interface TwitterTweet {
   id: string
+  url: string
   text: string
   createdAt: string
   username: string
   displayName: string
+  authorFollowersCount: number | null
   likeCount: number
   retweetCount: number
   replyCount: number
@@ -30,6 +38,13 @@ export interface TwitterTweet {
   isQuote: boolean
   mediaUrls: string[]
   urls: TweetUrl[]
+}
+
+export interface TwitterCommunity {
+  id: string
+  name: string
+  description: string
+  memberCount: number
 }
 
 export interface PaginatedResult<T> {

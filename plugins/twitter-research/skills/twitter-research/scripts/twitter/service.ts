@@ -1,8 +1,8 @@
 import { TwitterClient } from './client'
 import { buildQuery } from './query-builder'
 import { applyPreset } from './presets'
-import { formatOutput, formatProfileOutput } from './formatter'
-import type { SearchOptions, OutputFormat, TwitterUser, TwitterTweet } from './types'
+import { formatOutput, formatProfileOutput, formatCommunitiesOutput } from './formatter'
+import type { SearchOptions, OutputFormat, TwitterUser, TwitterTweet, TwitterCommunity } from './types'
 
 export interface SearchResult {
   query: string
@@ -96,33 +96,145 @@ export async function getProfile(
 }
 
 /**
- * Find Twitter users by name/keyword
+ * Find Twitter users by name/keyword (uses People Search via /search-v3)
  */
 export async function findUsers(
   name: string,
   format: OutputFormat = 'text'
 ): Promise<FindResult> {
   const client = new TwitterClient()
-  const query = `"${name}"`
-  const result = await client.search(query, 50)
-
-  const usersMap = new Map<string, TwitterUser>()
-  for (const tweet of result.items) {
-    if (!usersMap.has(tweet.username)) {
-      try {
-        const user = await client.getUser(tweet.username)
-        usersMap.set(tweet.username, user)
-      } catch {
-        // Skip if we can't fetch the user
-      }
-    }
-  }
-
-  const users = Array.from(usersMap.values())
+  const result = await client.searchPeople(name, 20)
+  const users = result.items
     .sort((a, b) => b.followersCount - a.followersCount)
     .slice(0, 10)
-
   return { formatted: formatOutput(users, format), users }
+}
+
+export interface SearchPeopleResult {
+  formatted: string
+  users: TwitterUser[]
+  nextCursor: string | null
+}
+
+/**
+ * Search for Twitter users by name/keyword with optional filters
+ */
+export async function searchPeople(
+  query: string,
+  options: { maxFollowers?: number; bioContains?: string; limit?: number } = {},
+  format: OutputFormat = 'text',
+  cursor?: string | null
+): Promise<SearchPeopleResult> {
+  const client = new TwitterClient()
+  const result = await client.searchPeople(query, options.limit ?? 20, cursor)
+  let users = result.items
+
+  if (options.maxFollowers != null) {
+    users = users.filter(u => u.followersCount <= options.maxFollowers!)
+  }
+  if (options.bioContains) {
+    const needle = options.bioContains.toLowerCase()
+    users = users.filter(u => u.description.toLowerCase().includes(needle))
+  }
+
+  return { formatted: formatOutput(users, format), users, nextCursor: result.nextCursor }
+}
+
+/**
+ * Get multiple user profiles by IDs in a single call
+ */
+export async function getUsersBatch(
+  userIds: string[],
+  format: OutputFormat = 'text'
+): Promise<FindResult> {
+  const client = new TwitterClient()
+  const users = await client.getUsers(userIds)
+  return { formatted: formatOutput(users, format), users }
+}
+
+/**
+ * Get a user's media posts (images/videos)
+ */
+export async function getUserMedia(
+  username: string,
+  options: { limit?: number; cursor?: string | null } = {},
+  format: OutputFormat = 'text'
+): Promise<SearchResult> {
+  const client = new TwitterClient()
+  const user = await client.getUser(username.replace(/^@/, ''))
+  const result = await client.getUserMedia(user.id, options.limit ?? 20, options.cursor)
+  return {
+    query: `media from @${user.username}`,
+    formatted: formatOutput(result.items, format, `media from @${user.username}`),
+    tweets: result.items,
+    nextCursor: result.nextCursor,
+  }
+}
+
+export interface UserListResult {
+  formatted: string
+  users: TwitterUser[]
+  nextCursor: string | null
+}
+
+/**
+ * Get a user's followers
+ */
+export async function getUserFollowers(
+  username: string,
+  options: { limit?: number; cursor?: string | null } = {},
+  format: OutputFormat = 'text'
+): Promise<UserListResult> {
+  const client = new TwitterClient()
+  const user = await client.getUser(username.replace(/^@/, ''))
+  const result = await client.getFollowers(user.id, options.limit ?? 20, options.cursor)
+  return { formatted: formatOutput(result.items, format), users: result.items, nextCursor: result.nextCursor }
+}
+
+/**
+ * Get who a user follows
+ */
+export async function getUserFollowing(
+  username: string,
+  options: { limit?: number; cursor?: string | null } = {},
+  format: OutputFormat = 'text'
+): Promise<UserListResult> {
+  const client = new TwitterClient()
+  const user = await client.getUser(username.replace(/^@/, ''))
+  const result = await client.getFollowing(user.id, options.limit ?? 20, options.cursor)
+  return { formatted: formatOutput(result.items, format), users: result.items, nextCursor: result.nextCursor }
+}
+
+export interface CommunitiesResult {
+  formatted: string
+  communities: TwitterCommunity[]
+  nextCursor: string | null
+}
+
+/**
+ * Search for Twitter communities
+ */
+export async function searchCommunities(
+  query: string,
+  options: { limit?: number; cursor?: string | null } = {},
+  format: OutputFormat = 'text'
+): Promise<CommunitiesResult> {
+  const client = new TwitterClient()
+  const result = await client.searchCommunities(query, options.limit ?? 20, options.cursor)
+  return { formatted: formatCommunitiesOutput(result.items, format), communities: result.items, nextCursor: result.nextCursor }
+}
+
+/**
+ * Get members of a Twitter community
+ */
+export async function getCommunityMembers(
+  communityId: string,
+  options: { limit?: number; cursor?: string | null } = {},
+  format: OutputFormat = 'text'
+): Promise<UserListResult> {
+  const client = new TwitterClient()
+  const result = await client.getCommunityMembers(communityId, options.limit ?? 20, options.cursor)
+  return { formatted: formatOutput(result.items, format), users: result.items, nextCursor: result.nextCursor }
 }
 
 export interface ListTimelineResult {

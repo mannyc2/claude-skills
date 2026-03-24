@@ -1,4 +1,4 @@
-import type { TwitterUser, TwitterTweet, TweetUrl, PaginatedResult } from './types'
+import type { TwitterUser, TwitterTweet, TwitterCommunity, TweetUrl, PaginatedResult } from './types'
 
 const RAPIDAPI_HOST = 'twitter241.p.rapidapi.com'
 const RAPIDAPI_URL = `https://${RAPIDAPI_HOST}`
@@ -79,8 +79,17 @@ export class TwitterClient {
           user?: {
             result?: {
               rest_id: string
+              is_blue_verified?: boolean
               core: { screen_name: string; name: string }
-              legacy: { followers_count: number; description?: string }
+              legacy: {
+                followers_count: number
+                friends_count?: number
+                statuses_count?: number
+                media_count?: number
+                description?: string
+                created_at?: string
+                profile_image_url_https?: string
+              }
             }
           }
         }
@@ -97,8 +106,348 @@ export class TwitterClient {
       username: user.core.screen_name,
       displayName: user.core.name,
       followersCount: user.legacy.followers_count,
+      followingCount: user.legacy.friends_count ?? 0,
+      tweetCount: user.legacy.statuses_count ?? 0,
+      mediaCount: user.legacy.media_count ?? 0,
       description: user.legacy.description || '',
+      createdAt: user.legacy.created_at || '',
+      isBlueVerified: user.is_blue_verified ?? false,
+      profileImageUrl: user.legacy.profile_image_url_https || '',
     }
+  }
+
+  async searchPeople(
+    query: string,
+    count: number = 20,
+    startCursor?: string | null
+  ): Promise<PaginatedResult<TwitterUser>> {
+    const params: Record<string, string> = { query, type: 'People', count: String(count) }
+    if (startCursor) params.cursor = startCursor
+
+    const data = (await this.fetch('/search-v3', params)) as Record<string, unknown>
+
+    const users: TwitterUser[] = []
+    const seenIds = new Set<string>()
+    let nextCursor: string | null = null
+
+    // Navigate response: result.timeline_response.timeline.instructions[].entries[]
+    const timelineResponse = (data as any)?.result?.timeline_response ?? (data as any)?.result
+    const timeline = timelineResponse?.timeline
+    const instructions = timeline?.instructions || []
+
+    for (const instruction of instructions) {
+      const entries = (instruction as any)?.entries || []
+      for (const entry of entries) {
+        const entryId = (entry as any)?.entryId || ''
+
+        // Extract cursor
+        if (entryId.startsWith('cursor-bottom')) {
+          nextCursor = (entry as any)?.content?.value || null
+          continue
+        }
+
+        // Extract user from entry
+        const userResult = (entry as any)?.content?.content?.user_results?.result
+          ?? (entry as any)?.content?.itemContent?.user_results?.result
+        if (!userResult?.rest_id) continue
+        if (seenIds.has(userResult.rest_id)) continue
+        seenIds.add(userResult.rest_id)
+
+        const core = userResult.core || {}
+        const legacy = userResult.legacy || {}
+        const profileBio = userResult.profile_bio || {}
+        const relationshipCounts = userResult.relationship_counts || {}
+        const verification = userResult.verification || {}
+
+        users.push({
+          id: userResult.rest_id,
+          username: core.screen_name || legacy.screen_name || '',
+          displayName: core.name || legacy.name || '',
+          followersCount: relationshipCounts.followers ?? legacy.followers_count ?? 0,
+          followingCount: relationshipCounts.following ?? legacy.friends_count ?? 0,
+          tweetCount: legacy.statuses_count ?? 0,
+          mediaCount: legacy.media_count ?? 0,
+          description: profileBio.description ?? legacy.description ?? '',
+          createdAt: legacy.created_at || '',
+          isBlueVerified: verification.is_blue_verified ?? userResult.is_blue_verified ?? false,
+          profileImageUrl: legacy.profile_image_url_https || '',
+        })
+      }
+    }
+
+    return { items: users.slice(0, count), nextCursor }
+  }
+
+  async getUsers(userIds: string[]): Promise<TwitterUser[]> {
+    if (userIds.length === 0) return []
+
+    const data = (await this.fetch('/get-users', { users: userIds.join(',') })) as Record<string, unknown>
+
+    const users: TwitterUser[] = []
+    // Response may be an array or nested in result
+    const results: unknown[] = Array.isArray(data) ? data : (data as any)?.result || []
+    const resultArray = Array.isArray(results) ? results : [results]
+
+    for (const item of resultArray) {
+      const userResult = (item as any)?.result ?? item
+      if (!userResult?.rest_id) continue
+
+      const core = userResult.core || {}
+      const legacy = userResult.legacy || {}
+
+      users.push({
+        id: userResult.rest_id,
+        username: core.screen_name || legacy.screen_name || '',
+        displayName: core.name || legacy.name || '',
+        followersCount: legacy.followers_count ?? 0,
+        followingCount: legacy.friends_count ?? 0,
+        tweetCount: legacy.statuses_count ?? 0,
+        mediaCount: legacy.media_count ?? 0,
+        description: legacy.description ?? '',
+        createdAt: legacy.created_at || '',
+        isBlueVerified: userResult.is_blue_verified ?? false,
+        profileImageUrl: legacy.profile_image_url_https || '',
+      })
+    }
+
+    return users
+  }
+
+  async getUserMedia(
+    userId: string,
+    count: number = 20,
+    startCursor?: string | null
+  ): Promise<PaginatedResult<TwitterTweet>> {
+    const allTweets: TwitterTweet[] = []
+    const seenIds = new Set<string>()
+    let cursor: string | null = startCursor ?? null
+    let lastCursor: string | null = null
+
+    while (allTweets.length < count) {
+      const params: Record<string, string> = { userId, count: String(count) }
+      if (cursor) params.cursor = cursor
+
+      const data = (await this.fetch('/user-media', params)) as Record<string, unknown>
+
+      let nextCursor: string | null = null
+      if ((data as any)?.cursor?.bottom) {
+        nextCursor = (data as any).cursor.bottom
+      }
+
+      const instructions = (data as any)?.result?.timeline?.instructions || []
+      let foundTweets = 0
+
+      for (const instruction of instructions) {
+        if (instruction.type !== 'TimelineAddEntries') continue
+        for (const entry of instruction.entries || []) {
+          const entryId = entry.entryId || ''
+          if (entryId.startsWith('cursor-bottom')) {
+            nextCursor = entry.content?.value || null
+            continue
+          }
+          const tweet = this.extractTweet(entry.content)
+          if (tweet && !seenIds.has(tweet.id)) {
+            seenIds.add(tweet.id)
+            allTweets.push(tweet)
+            foundTweets++
+          }
+        }
+      }
+
+      lastCursor = nextCursor
+      if (foundTweets === 0 || !nextCursor) break
+      cursor = nextCursor
+
+      if (allTweets.length < count) {
+        await new Promise((r) => setTimeout(r, 1000))
+      }
+    }
+
+    const items = allTweets.slice(0, count)
+    return { items, nextCursor: items.length >= count ? lastCursor : null }
+  }
+
+  async getFollowers(
+    userId: string,
+    count: number = 20,
+    startCursor?: string | null
+  ): Promise<PaginatedResult<TwitterUser>> {
+    return this.fetchUserList('/followers', userId, count, startCursor)
+  }
+
+  async getFollowing(
+    userId: string,
+    count: number = 20,
+    startCursor?: string | null
+  ): Promise<PaginatedResult<TwitterUser>> {
+    return this.fetchUserList('/followings', userId, count, startCursor)
+  }
+
+  private async fetchUserList(
+    endpoint: string,
+    userId: string,
+    count: number,
+    startCursor?: string | null
+  ): Promise<PaginatedResult<TwitterUser>> {
+    const users: TwitterUser[] = []
+    const seenIds = new Set<string>()
+    let cursor: string | null = startCursor ?? null
+    let lastCursor: string | null = null
+
+    while (users.length < count) {
+      const params: Record<string, string> = { userId, count: String(count) }
+      if (cursor) params.cursor = cursor
+
+      const data = (await this.fetch(endpoint, params)) as Record<string, unknown>
+
+      let nextCursor: string | null = null
+      if ((data as any)?.cursor?.bottom) {
+        nextCursor = (data as any).cursor.bottom
+      }
+
+      const instructions = (data as any)?.result?.timeline?.instructions || []
+      let foundUsers = 0
+
+      for (const instruction of instructions) {
+        if (instruction.type !== 'TimelineAddEntries') continue
+        for (const entry of (instruction as any).entries || []) {
+          const entryId = entry.entryId || ''
+          if (entryId.startsWith('cursor-bottom')) {
+            nextCursor = entry.content?.value || null
+            continue
+          }
+
+          const userResult = entry.content?.itemContent?.user_results?.result
+          if (!userResult?.rest_id) continue
+          if (seenIds.has(userResult.rest_id)) continue
+          seenIds.add(userResult.rest_id)
+
+          const core = userResult.core || {}
+          const legacy = userResult.legacy || {}
+
+          users.push({
+            id: userResult.rest_id,
+            username: core.screen_name || legacy.screen_name || '',
+            displayName: core.name || legacy.name || '',
+            followersCount: legacy.followers_count ?? 0,
+            followingCount: legacy.friends_count ?? 0,
+            tweetCount: legacy.statuses_count ?? 0,
+            mediaCount: legacy.media_count ?? 0,
+            description: legacy.description ?? '',
+            createdAt: legacy.created_at || '',
+            isBlueVerified: userResult.is_blue_verified ?? false,
+            profileImageUrl: legacy.profile_image_url_https || '',
+          })
+          foundUsers++
+        }
+      }
+
+      lastCursor = nextCursor
+      if (foundUsers === 0 || !nextCursor) break
+      cursor = nextCursor
+
+      if (users.length < count) {
+        await new Promise((r) => setTimeout(r, 1000))
+      }
+    }
+
+    const items = users.slice(0, count)
+    return { items, nextCursor: items.length >= count ? lastCursor : null }
+  }
+
+  async searchCommunities(
+    query: string,
+    count: number = 20,
+    startCursor?: string | null
+  ): Promise<PaginatedResult<TwitterCommunity>> {
+    const params: Record<string, string> = { query, count: String(count) }
+    if (startCursor) params.cursor = startCursor
+
+    const data = (await this.fetch('/search-community', params)) as Record<string, unknown>
+
+    const communities: TwitterCommunity[] = []
+    let nextCursor: string | null = null
+
+    // Navigate response structure
+    const instructions = (data as any)?.result?.timeline?.instructions
+      || (data as any)?.result?.instructions || []
+
+    for (const instruction of instructions) {
+      const entries = (instruction as any)?.entries || []
+      for (const entry of entries) {
+        const entryId = (entry as any)?.entryId || ''
+        if (entryId.startsWith('cursor-bottom')) {
+          nextCursor = (entry as any)?.content?.value || null
+          continue
+        }
+
+        const communityResult = (entry as any)?.content?.itemContent?.community_results?.result
+          ?? (entry as any)?.content?.content?.community_results?.result
+        if (!communityResult) continue
+
+        communities.push({
+          id: communityResult.id_str || communityResult.rest_id || '',
+          name: communityResult.name || '',
+          description: communityResult.description || '',
+          memberCount: communityResult.member_count ?? communityResult.members_count ?? 0,
+        })
+      }
+    }
+
+    return { items: communities.slice(0, count), nextCursor }
+  }
+
+  async getCommunityMembers(
+    communityId: string,
+    count: number = 20,
+    startCursor?: string | null
+  ): Promise<PaginatedResult<TwitterUser>> {
+    const params: Record<string, string> = { communityId, count: String(count) }
+    if (startCursor) params.cursor = startCursor
+
+    const data = (await this.fetch('/community-members', params)) as Record<string, unknown>
+
+    const users: TwitterUser[] = []
+    const seenIds = new Set<string>()
+    let nextCursor: string | null = null
+
+    const instructions = (data as any)?.result?.timeline?.instructions
+      || (data as any)?.result?.instructions || []
+
+    for (const instruction of instructions) {
+      const entries = (instruction as any)?.entries || []
+      for (const entry of entries) {
+        const entryId = (entry as any)?.entryId || ''
+        if (entryId.startsWith('cursor-bottom')) {
+          nextCursor = (entry as any)?.content?.value || null
+          continue
+        }
+
+        const userResult = (entry as any)?.content?.itemContent?.user_results?.result
+        if (!userResult?.rest_id) continue
+        if (seenIds.has(userResult.rest_id)) continue
+        seenIds.add(userResult.rest_id)
+
+        const core = userResult.core || {}
+        const legacy = userResult.legacy || {}
+
+        users.push({
+          id: userResult.rest_id,
+          username: core.screen_name || legacy.screen_name || '',
+          displayName: core.name || legacy.name || '',
+          followersCount: legacy.followers_count ?? 0,
+          followingCount: legacy.friends_count ?? 0,
+          tweetCount: legacy.statuses_count ?? 0,
+          mediaCount: legacy.media_count ?? 0,
+          description: legacy.description ?? '',
+          createdAt: legacy.created_at || '',
+          isBlueVerified: userResult.is_blue_verified ?? false,
+          profileImageUrl: legacy.profile_image_url_https || '',
+        })
+      }
+    }
+
+    return { items: users.slice(0, count), nextCursor }
   }
 
   async getListTimeline(
@@ -371,12 +720,15 @@ export class TwitterClient {
 
             if (!seenIds.has(legacy.id_str)) {
               seenIds.add(legacy.id_str)
+              const commentUsername = userCore.screen_name || userLegacy.screen_name || 'unknown'
               allTweets.push({
                 id: legacy.id_str,
+                url: `https://twitter.com/${commentUsername}/status/${legacy.id_str}`,
                 text: legacy.full_text,
                 createdAt: legacy.created_at,
-                username: userCore.screen_name || userLegacy.screen_name || 'unknown',
+                username: commentUsername,
                 displayName: userCore.name || userLegacy.name || 'Unknown',
+                authorFollowersCount: (userLegacy as Record<string, unknown>).followers_count as number ?? null,
                 likeCount: legacy.favorite_count || 0,
                 retweetCount: legacy.retweet_count || 0,
                 replyCount: legacy.reply_count || 0,
@@ -451,7 +803,7 @@ export class TwitterClient {
       const legacy = tweetResult.legacy
       const userResult = tweetResult.core?.user_results?.result
       const userCore = userResult?.core || {}
-      const userLegacy = userResult?.legacy || {}
+      const userLegacy = (userResult?.legacy || {}) as Record<string, unknown>
 
       let viewCount: number | null = null
       if (tweetResult.views?.count) {
@@ -474,12 +826,16 @@ export class TwitterClient {
         }
       }
 
+      const username = (userCore as Record<string, unknown>).screen_name as string || userLegacy.screen_name as string || 'unknown'
+
       return {
         id: legacy.id_str,
+        url: `https://twitter.com/${username}/status/${legacy.id_str}`,
         text: legacy.full_text,
         createdAt: legacy.created_at,
-        username: userCore.screen_name || userLegacy.screen_name || 'unknown',
-        displayName: userCore.name || userLegacy.name || 'Unknown',
+        username,
+        displayName: (userCore as Record<string, unknown>).name as string || userLegacy.name as string || 'Unknown',
+        authorFollowersCount: (userLegacy.followers_count as number) ?? null,
         likeCount: legacy.favorite_count || 0,
         retweetCount: legacy.retweet_count || 0,
         replyCount: legacy.reply_count || 0,

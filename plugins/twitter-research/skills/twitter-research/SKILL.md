@@ -1,7 +1,7 @@
 ---
 name: twitter-research
 description: Research and analyze Twitter/X content. Use when searching Twitter, analyzing tweets, researching users, tracking conversations, or investigating topics on X/Twitter.
-allowed-tools: mcp__twitter-research__search_tweets, mcp__twitter-research__get_user, mcp__twitter-research__get_user_tweets, mcp__twitter-research__get_profile, mcp__twitter-research__find_users, mcp__twitter-research__get_replies, mcp__twitter-research__get_list_timeline
+allowed-tools: mcp__twitter-research__search_tweets, mcp__twitter-research__get_user, mcp__twitter-research__get_user_tweets, mcp__twitter-research__get_profile, mcp__twitter-research__find_users, mcp__twitter-research__search_people, mcp__twitter-research__get_users_batch, mcp__twitter-research__get_user_media, mcp__twitter-research__get_user_followers, mcp__twitter-research__get_user_following, mcp__twitter-research__search_communities, mcp__twitter-research__get_community_members, mcp__twitter-research__get_replies, mcp__twitter-research__get_list_timeline
 ---
 
 # Twitter Research Skill
@@ -46,9 +46,46 @@ Get a user's recent tweets with optional filters (noRetweets, noReplies, since, 
 
 Get user profile combined with their recent original tweets in one call.
 
-### `find_users` — Find Users
+### `find_users` — Find Users (Legacy)
 
-Find Twitter users by name or keyword. Returns users sorted by follower count.
+Find Twitter users by name or keyword. Prefer `search_people` for richer results.
+
+### `search_people` — People Search
+
+Search for users by name, keyword, or topic. Returns profiles with bios, follower counts, and verification status.
+
+**Key parameters:**
+| Parameter | Description |
+|-----------|-------------|
+| `query` | Search query for finding users |
+| `maxFollowers` | Filter: only return users with fewer than N followers |
+| `bioContains` | Filter: bio must contain this text (case-insensitive) |
+| `limit` | Max results (default: 20) |
+| `cursor` | Pagination cursor |
+
+### `get_users_batch` — Batch User Lookup
+
+Look up multiple users by their numeric IDs in one API call. Pass `userIds` array of rest_ids.
+
+### `get_user_media` — User Media Timeline
+
+Get a user's media posts only (images/videos). Useful for evaluating a creator's visual content.
+
+### `get_user_followers` — User Followers
+
+Get a user's followers. Returns profiles with bios and follower counts.
+
+### `get_user_following` — User Following
+
+Get who a user follows. Returns profiles with bios and follower counts.
+
+### `search_communities` — Community Search
+
+Search for Twitter communities by keyword. Returns names, descriptions, and member counts.
+
+### `get_community_members` — Community Members
+
+Get members of a community by ID. Returns user profiles.
 
 ### `get_replies` — Tweet Replies
 
@@ -74,9 +111,20 @@ Get recent tweets from a Twitter list by list ID. Supports `limit` and `days` fi
 3. See customer feedback: `search_tweets` with `to` set to competitor
 
 ### Finding Influencers
-1. Search topic with high engagement: `search_tweets` with `minLikes: 500`
-2. Note usernames from top tweets
-3. Look up each: `get_profile` for user info + recent tweets
+1. `search_people` with niche keywords + `maxFollowers: 50000` for smaller creators
+2. Use `bioContains` to filter by bio keywords
+3. Deep dive: `get_profile` for user info + recent tweets
+4. Check their media: `get_user_media` for visual content quality
+
+### Discovering via Communities
+1. `search_communities` with topic keywords (e.g., "AI video", "AI filmmaking")
+2. `get_community_members` on promising communities
+3. Filter members by follower count for targeted outreach
+
+### Network Mapping
+1. `get_user_following` to see who a key account follows
+2. `get_user_followers` to find their audience
+3. Cross-reference with `search_people` to find accounts in the same niche
 
 ### Tracking Breaking News
 1. Recent activity: `search_tweets` with `days: 1, limit: 100`
@@ -126,3 +174,6 @@ Requires `RAPIDAPI_KEY_241` environment variable (configured via MCP server).
 2. **Combine `noRetweets: true` and `noReplies: true`** for original content only
 3. **Use `days`** instead of calculating dates manually
 4. **Use `get_profile`** instead of separate `get_user` + `get_user_tweets` calls
+5. **Use `search_people`** instead of `find_users` for richer results with bio filtering
+6. **Tweet results include `authorFollowersCount`** — use this to gauge author reach without extra lookups
+7. **Use `get_users_batch`** when you have rest_ids from search results to avoid N+1 lookups

@@ -1,4 +1,4 @@
-import type { TwitterUser, TwitterTweet, SearchSummary, OutputFormat } from './types'
+import type { TwitterUser, TwitterTweet, TwitterCommunity, SearchSummary, OutputFormat } from './types'
 
 function formatLikes(count: number): string {
   if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`
@@ -111,7 +111,8 @@ export function formatTweetsText(tweets: TwitterTweet[], query: string): string 
   // Tweets with expanded links
   for (const tweet of tweets) {
     const text = expandedTexts.get(tweet.id) || tweet.text
-    lines.push(`@${tweet.username} · ${formatLikes(tweet.likeCount)} likes`)
+    const followerTag = tweet.authorFollowersCount != null ? ` (${formatLikes(tweet.authorFollowersCount)} followers)` : ''
+    lines.push(`@${tweet.username}${followerTag} · ${formatLikes(tweet.likeCount)} likes`)
     lines.push(truncateText(text))
     lines.push(`→ twitter.com/${tweet.username}/status/${tweet.id}`)
     lines.push('')
@@ -133,8 +134,9 @@ export function formatTweetsJson(tweets: TwitterTweet[], query: string): string 
 
 export function formatUserText(user: TwitterUser): string {
   const lines: string[] = []
-  lines.push(`@${user.username} · ${formatLikes(user.followersCount)} followers`)
-  lines.push(user.displayName)
+  const verified = user.isBlueVerified ? ' ✓' : ''
+  lines.push(`@${user.username}${verified} · ${formatLikes(user.followersCount)} followers · ${formatLikes(user.followingCount)} following`)
+  lines.push(`${user.displayName} · ${formatLikes(user.tweetCount)} tweets`)
   if (user.description) {
     lines.push('')
     lines.push(user.description)
@@ -158,7 +160,8 @@ export function formatUsersText(users: TwitterUser[]): string {
   lines.push('')
 
   for (const user of users) {
-    lines.push(`@${user.username} · ${formatLikes(user.followersCount)} followers`)
+    const verified = user.isBlueVerified ? ' ✓' : ''
+    lines.push(`@${user.username}${verified} · ${formatLikes(user.followersCount)} followers`)
     lines.push(`  ${user.displayName}`)
     if (user.description) {
       lines.push(`  ${truncateText(user.description, 100)}`)
@@ -167,6 +170,25 @@ export function formatUsersText(users: TwitterUser[]): string {
   }
 
   return lines.join('\n')
+}
+
+export function formatCommunitiesText(communities: TwitterCommunity[]): string {
+  if (communities.length === 0) return 'No communities found.'
+  const lines: string[] = [`Found ${communities.length} communities:`, '']
+  for (const c of communities) {
+    lines.push(`${c.name} · ${formatLikes(c.memberCount)} members`)
+    if (c.description) lines.push(`  ${truncateText(c.description, 120)}`)
+    lines.push(`  ID: ${c.id}`)
+    lines.push('')
+  }
+  return lines.join('\n')
+}
+
+export function formatCommunitiesOutput(
+  communities: TwitterCommunity[],
+  format: OutputFormat
+): string {
+  return format === 'json' ? JSON.stringify(communities, null, 2) : formatCommunitiesText(communities)
 }
 
 export function formatOutput(
@@ -212,8 +234,9 @@ export function formatProfileOutput(
   const lines: string[] = []
 
   // User info
-  lines.push(`@${user.username} · ${formatLikes(user.followersCount)} followers`)
-  lines.push(user.displayName)
+  const verified = user.isBlueVerified ? ' ✓' : ''
+  lines.push(`@${user.username}${verified} · ${formatLikes(user.followersCount)} followers · ${formatLikes(user.followingCount)} following`)
+  lines.push(`${user.displayName} · ${formatLikes(user.tweetCount)} tweets`)
   if (user.description) {
     lines.push('')
     lines.push(user.description)
