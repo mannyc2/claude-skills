@@ -56,7 +56,10 @@ export class TwitterClient {
         }
 
         if (!response.ok) {
-          throw new Error(`API error: ${response.status} ${response.statusText}`)
+          let body = ''
+          try { body = await response.text() } catch {}
+          const detail = body ? ` — ${body.slice(0, 200)}` : ''
+          throw new Error(`API error: ${response.status} ${response.statusText}${detail}`)
         }
 
         return await response.json()
@@ -295,7 +298,7 @@ export class TwitterClient {
     let lastCursor: string | null = null
 
     while (users.length < count) {
-      const params: Record<string, string> = { userId, count: String(count) }
+      const params: Record<string, string> = { user: userId, count: String(count) }
       if (cursor) params.cursor = cursor
 
       const data = (await this.fetch(endpoint, params)) as Record<string, unknown>
